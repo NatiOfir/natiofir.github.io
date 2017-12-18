@@ -1,0 +1,191 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">  
+    		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="Personal Website">
+		<meta name="author" content="Nati Ofir">
+		<link rel="shortcut icon" href="http://getbootstrap.com/docs-assets/ico/favicon.png">
+
+		<title>Project Page</title>
+
+    		<!-- Bootstrap core CSS -->
+    		<link href="index_files/bootstrap.css" rel="stylesheet">
+
+    		<!-- Custom styles for this template -->
+    		<link href="index_files/starter-template.css" rel="stylesheet">
+
+		<script type="text/x-mathjax-config">
+		MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+		</script>
+		<script type="text/javascript"
+		src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+		</script>
+	</head>
+	<body>
+
+	    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	      <div class="container">
+	        <div class="navbar-header">
+	          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+	            <span class="sr-only">Toggle navigation</span>
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	          </button>
+	          <a class="navbar-brand" href="#">Faint Edges</a>
+	        </div>
+	        <div class="collapse navbar-collapse">
+	          <ul class="nav navbar-nav">
+	            <li class="active"><a href="#">Home</a></li>
+	            <li><a href="#intro">Introduction</a></li>
+				<li><a href="#setup">Problem Setup</a></li>
+				<li><a href="#threshold">Detection Threshold</a></li>
+	           	<li><a href="#search">Search Methods</a></li>
+	            <li><a href="#code">Code</a></li>
+	            <li><a href="#ref">References</a></li>
+	          </ul>
+	        </div><!--/.nav-collapse -->
+	      </div>
+	    </div>
+
+   	
+	<div class="container">
+
+	<div class="starter-template">
+		<h1>
+		Fast Detection of Faint Edges in Noisy Images
+		<br><br>
+		***Under Construction***
+		</h1>
+		<font style="font-size: 18pt">
+		Written by Nati Ofir
+		</font>
+		<br><br>
+		<a href="http://www.wisdom.weizmann.ac.il/" target = "_blank">Department of Mathematics and Computer Science</a>
+		<br>
+		<a href="http://www.weizmann.ac.il/" target = "_blank">Weizmann Institute of Science</a>
+		<br>
+		<a href="http://en.wikipedia.org/wiki/Rehovot" target = "_blank">Rehovot, Israel</a>
+		<br>		
+		<hr>
+		<div align="left">
+		
+		<a id="intro"></a>
+		<h1>
+		Introduction
+		</h1>
+		Detecting edges is a fundamental problem in computer
+		vision with many applications, some involving very noisy
+		images. While most edge detection methods are fast, they
+		perform well only on relatively clean images. Indeed, edges
+		in such images can be reliably detected using only local filters.
+		Detecting faint edges under high levels of noise cannot
+		be done locally at the individual pixel level, and requires
+		more sophisticated global processing. Unfortunately, existing
+		methods that achieve this goal are quite slow. In this project
+		we develop a novel multiscale methods to detect curved
+		edges in noisy images. While our algorithms searches for
+		faint edges, they do so in a practical runtime, above and below linear in the total number of image
+		pixels. As we demonstrate experimentally, our algorithms obtain the best edge detection quality on a variety of challenging noisy images.
+		<hr>
+		
+		<a id="setup"></a>
+		<h1>Problem Setup</h1>
+		The input of our method is a noisy gray-level image $I$ with $N= m\times n$ pixels containing an a-priori unknown number of curved edges at unknown locations and shapes. 
+		For simplicity we consider square images with $m=n$ where $n$ is a power of 2. In developing our algorithm and its theoretical analysis, we consider an additive Gaussian noise model. 
+		Namely, the input image can by decomposed as 
+		\begin{equation}
+		I = I_{clean}+I_{noise}
+		\end{equation}
+		where $I_{clean}$ is a noise free image, with step edges of constant contrast, and $I_{noise}(x,y)\sim N(0,\sigma^2)$. 
+
+		An <i>edge</i> is a non self-intersecting curve $\gamma$, with step discontinuity in the pixel intensities of the unobserved $I_{clean}$. 
+		Its SNR is defined as the absolute difference in image intensities across the step edge, divided by the noise level. 
+		To each candidate curve $\gamma$, of total length $L$, passing through a set of pixels $P$, we associate the following response vector
+		\begin{equation} \label{eq:feature}
+		\phi(\gamma) = [R,L,C,P].
+		\end{equation}
+		The response value $R$, determined by the matched filter corresponding to the curve $\gamma$, is the difference between the sums of intensities on either sides of the curve. The variable $C=R/m(L)$ is the average contrast along the curve, where $m(L)$ is the total number of pixels of the matched filter of length $L$. Given two curves, $\gamma_1$ and $\gamma_2$ that share an endpoint, with the corresponding vectors $\phi(\gamma_i) = [R_i,L_i,C_i,P_i]$, $i=1,2$, the response vector of their \textit{concatenation} is 
+		\begin{equation} \label{eq:concate}
+		\phi(\gamma_1+\gamma_2) = [R_1+R_2,L_1+L_2,\frac{R_1+R_2}{m(L_1)+m(L_2)},P_1\cup P_2].
+		\end{equation}
+
+		<hr>
+		
+		<a id="straight"></a>
+		<h1>Detection Threshold</h1>
+		Our methods scan a big set of candidate curves. For many pairs of start and end pixels, the algorithm stores in a data structure, the edge with the most statistically significant response.
+		Clearly, for most images, the vast majority of these responses do not trace actual image edges and should be discarded.
+		This task requires the determination of a suitable threshold, possibly dependent on edge length, such that only edge responses above it are retained.   
+
+		We introduce such a theoretical threshold, designed to control the average number of false positive detections.
+		To this end, consider a pure noise image $I=I_{noise}$, where $I_{noise}(x,y)\sim N(0,\sigma^2)$. By definition, this image contains no real edges, and so, with high probability, all of its edge responses should be discarded.
+		Suppose that there are $K_{L}$ distinct candidate edges of length $L.$
+		Then, the corresponding threshold, $T(L,K_L),$ is approximately the maximal edge contrast expected in $I_{noise}$ among $K_L$ statistically independent curves of length $L$.
+		According to Gaussian extreme value distribution, it can be shown that
+		\begin{equation} \label{eq:threshold}
+		T(L,K_L) \approx \sigma \sqrt{\frac{2 \ln {K_L}}{wL}},
+		\end{equation}
+		where $w$ is the width of the matched filter, while the extreme value standard deviation equals $\approx T^{-1}(L,K_L)$. 
+		Thus, to each curve of length $L$, we assign an <i>edge score</i>, defined as the difference between its mean contrast and the threshold, divided by the e.v. standard deviation:
+		\begin{equation} \label{eq:score}
+		Score(\gamma)=T(L,K_L)[C(\gamma) - T(L,K_L)].
+		\end{equation}
+		A positive score indicates that the candidate curve traces an edge. Moreover, higher scores represent stronger confidence for this indication.
+
+		<hr>
+		
+		<a id="search"></a>
+		<h1>Search Methods</h1>
+		<ul>		
+		<li><b>Curves:</b> [1] introduces a search methods for curved edges in an images. The method requires $O(N^{1.5})$ operations in full mode and $O(N\log N)$ in compcat mode.</li>
+		<li><b>Lines:</b> [4] introduces a search methods for straight lines in an images, the method requires $O(N\log N)$ operations.</li>
+		</ul>	
+		<hr>
+
+		<a id="code"></a>
+		<h1>Code</h1>
+		<ul>		
+		<li><a href = "https://github.com/NatiOfir/MatlabFastEdgeDetection.git">Curves</a></li>
+		<li><a href = "https://github.com/NatiOfir/MatlabFastEdgeDetection.git">Lines TBD</a></li>
+		</ul>		
+		<hr>
+
+	 	<a id="ref"></a>
+		<h1>References</h1>
+		<ol type="1">
+		<li>N. Ofir, M. Galun, B. Nadler and R. Basri, <a href = "http://arxiv.org/abs/1505.06600">Fast Detection of Curved Edges at Low SNR</a>, arXiv Technical Report, 2015.</li>
+		<li>I. Horev, B. Nadler, E. Arias-Castro, M. Galun, R.Basri, <a href="http://www.wisdom.weizmann.ac.il/~/meirav/HorevNadlerCastroGalunBasri_SIAM_2015.pdf">Detection of long edges on a computational budget: a sub-linear approach</a>, SIAM 2015.</li>  
+		<li>S. Alpert, M. Galun, B. Nadler and R. Basri, <a href="http://www.wisdom.weizmann.ac.il/~/meirav/Curves_Alpert_Galun_Nadler_Basri.pdf">Detecting faint curved edges in noisy images</a>, ECCV 2010.</li>
+		<li>M. Galun, R. Basri and A. Brandt, <a href="http://www.wisdom.weizmann.ac.il/~/meirav/EdgesGalunBasriBrandt.pdf"> Multiscale edge detection and fiber enhancement using differences of oriented means</a>, ICCV 2007.</li>
+		</ol>
+		</div>
+	</div>
+
+	</div><!-- /.container -->
+	</left>
+
+		<!-- Bootstrap core JavaScript
+		================================================== -->
+		<!-- Placed at the end of the document so the pages load faster -->
+		<script src="index_files/jquery-1.js"></script>
+		<script src="index_files/bootstrap.js"></script>
+	</body>
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-52158441-1', 'weizmann.ac.il');
+	  ga('send', 'pageview');
+
+	</script>
+
+</html>
+
+
+

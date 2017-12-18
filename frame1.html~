@@ -1,0 +1,67 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="web.css" />
+		<style type="text/css">
+		body {
+			background-color:white;
+			font-size:14pt;
+			color:black;			
+			}
+		a{
+			color:purple;
+		}
+		h1{
+			font-family:"Times New Roman";
+			font-size:22pt;
+			color:gray;
+		}
+		</style>
+		<title>Nati Ofir - Weizmann Institute of Science</title>
+	</head>
+	<body>
+		<pre><img src = "1.png">	<img src = "4.png">	<img src = "3.png">	</pre>
+		<hr>
+		<h1>
+		Nati Ofir 
+		</h1>
+		<font style="font-size: 18pt">
+		MSc Candidate
+		</font>
+		<br><br>
+
+		Department of Mathematics and Computer Science
+		<br>
+		The Weizmann Institute of Science
+		<br>
+		Rehovot, Israel
+		<br><br>
+		E-mail : <a href="mailto:yehonatan.ofir@weizmann.ac.il">yehonatan.ofir@weizmann.ac.il</a>
+		<br>
+		<hr>
+		<h1>
+		Research Interests
+		</h1>
+		<ul>		
+		<li>Computer Vision</li>
+		<li>Image Processing</li>
+		<li>Machine Learning</li>
+		</ul>
+
+		I am working with Prof. Ronen Basri and Dr. Meirav Galun at Weizmann Computer-Vision Laboratory.
+		
+		<hr>
+		<h1>Teaching</h1>
+		<ul>		
+		<li>Introduction to Image Processing, The College for Academic Studies, Summer 2013.</li>
+		</ul>
+
+		<hr>
+		<h1>Links</h1>
+		<ul>		
+		<li><a href="http://www.weizmann.ac.il/">Weizmann Institute of Science</a></li>
+		<li><a href="http://www.wisdom.weizmann.ac.il/">Department of Mathematics and Computer Science</a></li>
+		<li><a href="http://www.wisdom.weizmann.ac.il/~vision/">Computer Vision Lab</a></li>
+		<li><a href="http://www.mla.ac.il/Default.html">The College for Academic Studies</a></li>
+		</ul>
+	</body>
+</html>

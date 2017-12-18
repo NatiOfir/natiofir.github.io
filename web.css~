@@ -1,0 +1,93 @@
+body {
+	color: black;
+	font-weight: normal;
+	background-color: white;
+	font-family: "Antiqua";
+	font-size: 14pt;
+	text-align: top;
+	text-align: left;
+}
+
+a {
+	color: black;
+	font-weight: normal;
+	font-family: "Antiqua";
+	font-size: 14pt;
+	text-align: top;
+	text-align: left;
+}
+
+h1{
+	color: gray;
+	font-size: 24pt;
+	font-weight: normal;
+}
+
+#mainT{
+	border-right: 0.125em solid #FFA500;
+	border-bottom: 0.125em solid #FFA500;
+	--border:0.1em solid white;
+	background-color: white;
+}
+
+.headerT{
+	background-color: black;
+}
+
+#shade{
+	border-right: 0.125em solid black;
+	border-bottom: 0.125em solid black;
+	background-color: white;
+}
+
+#mainT td{
+	padding-left: 0.0em;
+	padding-right: 0.0em;
+	padding-top: 0.0em;
+	padding-bottom: 0.0em;
+}
+
+#mainB {
+	border: 0.125em solid black;
+	text-align: center;
+	height: 40px; 
+	width: 120px;
+	background-color: #FFA500;
+	color: black;
+	font-size: 16pt;
+	font-weight: bold;
+	font-family:"Courier";
+	border: solid black;
+	padding-right: 0.5em; 
+	padding-left:0.5em;
+}
+
+#backB{
+	border: 0.125em solid white;
+	text-align: center;
+	height: 50px; 
+	width: 200px;
+	background-color: white;
+	color: black;
+	font-size: 20pt;
+	font-weight: normal;
+	font-family:"Antiqua";
+	border: solid black;
+	padding-right: 0.5em; 
+	padding-left:0.5em;
+}
+
+.narrowB{
+	border: 0.125em solid black;
+	text-align: center;
+	height: 30px; 
+	width: 100px;
+	background-color: white;
+	color: black;
+	font-size: 14pt;
+	font-weight: normal;
+	font-family:"Antiqua";
+	padding-right: 0.5em; 
+	padding-left:0.5em;
+
+}

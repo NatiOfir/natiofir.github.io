@@ -1,0 +1,27 @@
+<html>
+	<head>
+		<script type="text/javascript" src="script.js"></script>
+		<script type="text/javascript" src="jquery.js"></script>
+		<link rel="stylesheet" type="text/css" href="web.css" />
+		<style type="text/css">
+		</style>
+
+	</head>
+	<body onload=init()>
+		<button type = "button" div id = "mainB" class = "mainB" onClick="regButClick()">
+			HOME
+		</button>
+		<br><br>
+		<button type = "button" div id = "mainB" class = "mainB" onClick="regButClick()">
+			RESEARCH
+		</button>
+		<br><br>
+		<button type = "button" div id = "mainB" class = "mainB" onClick="regButClick()">
+			TEACHING
+		</button>
+		<br><br>
+		<button type = "button" div id = "mainB" class = "mainB" onClick="regButClick()">
+			LINKS
+		</button>
+	</body>
+</html>
