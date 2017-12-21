@@ -59,7 +59,7 @@
 		<br>
 		<a href="http://en.wikipedia.org/wiki/Rehovot" target = "_blank">Rehovot, Israel</a>
 		<br><br>
-		E-mail : yehonatan.ofir (at) weizmann (dot) ac (dot) il
+		E-mail : yehonatan (dot) ofir (at) weizmann (dot) ac (dot) il
 		<br>
 		<hr>
 		<div align="left">
@@ -79,17 +79,35 @@
 		<a id="publications"></a>
 		<h1>Publications</h1>
 		<ul>	
-		<li><b><a href = "Paper.pdf">Fast Detection of Curved Edges at Low SNR</a></b>
+		<li><b><a href = "http://www.cv-foundation.org/openaccess/content_cvpr_2016/html/Ofir_Fast_Detection_of_CVPR_2016_paper.html">Fast Detection of Curved Edges at Low SNR</a></b>
 		<br>Nati Ofir, Meirav Galun, Boaz Nadler and Ronen Basri
-		<br><b>IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Las Vegas, CVPR-16 (2016)</b>
-		<br><a href = "Paper.pdf">[PDF]</a><a href = "Code.zip">[CODE C++]</a><a href = "projectPage.html">[PROJECT PAGE]</a>
+		<br><b>IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Las 			Vegas, CVPR-16 (2016)</b>
+		<br><a href = "Paper.pdf">[PDF]</a><a href = "Code.zip">[CODE-C++]</a><a href = 		"projectPage.html">[PROJECT PAGE]</a>
+		<br><br>
+		<li><b><a href = "https://arxiv.org/abs/1706.07717">On Detection of Faint Edges 		in Noisy Images</a></b>
+		<br>Nati Ofir, Meirav Galun, Sharon Alpert, Achi Brandt, Boaz Nadler and Ronen 			Basri
+		<br><b>arXiv Technical Report, June 2017</b>
+		<br><a href = "https://arxiv.org/pdf/1706.07717.pdf">[PDF]</a><a href = "https://github.com/NatiOfir/FaintStraightEdgeDetection">	 	[CODE-Matlab Lines]</a>
+<a href = "https://github.com/NatiOfir/FaintCurvedEdgeDetection">	 	[CODE-Matlab Curves]</a>
+		<br><br>
+		<li><b><a href = "https://link.springer.com/article/10.1007%2Fs10851-017-0748-y">Photometric Stereo by Hemispherical Metric Embedding</a></b>
+		<br>Ofer Bartal, Nati Ofir, Yaron Lipman and Ronen Basri
+		<br><b>Springer Journal of Mathematical Imaging and Vision, July 2017</b>
+		<br><a href = "http://rdcu.be/ugdS">[PDF]</a>
+		<br><br>
+		<li><b><a href = "https://arxiv.org/abs/1711.01543">Registration and Fusion of Multi-Spectral Images Using a Novel Edge Descriptor</a></b>
+		<br>Nati Ofir, Shai Silberstein, Dani Rozenbaum and Sharon Duvdevani Bar
+		<br><b>arXiv Technical Report, November 2017</b>
+		<br><a href = "https://arxiv.org/abs/1711.01543.pdf">[PDF]</a>
+		<br><br>
 		</ul>
 		<hr>
 		<a id="teaching"></a>
 		<h1>Teaching</h1>
 		<ul>	
-		<li>Information Theory (TA), Weizmann Institute, Spring 2013.</li>	
+		<li>Intoduction to Computer Vision (TA), Weizmann Institute, Fall 2015.</li>	
 		<li>Introduction to Image Processing, <a href="http://www.mla.ac.il/Default.html" target = "_blank">The College for Academic Studies</a>, Summer 2013.</li>
+		<li>Information Theory (TA), Weizmann Institute, Spring 2013.</li>
 		</ul>
 
 		</div>
