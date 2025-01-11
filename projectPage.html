@@ -1,153 +1,148 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta http-equiv="content-type" content="text/html; charset=UTF-8">  
-    		<meta charset="utf-8">
-		<meta http-equiv="X-UA-Compatible" content="IE=edge">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<meta name="description" content="Personal Website">
-		<meta name="author" content="Nati Ofir">
-		<link rel="shortcut icon" href="http://getbootstrap.com/docs-assets/ico/favicon.png">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Project Page - Faint Edges">
+    <meta name="author" content="Nati Ofir">
+    <title>Fast Detection of Curved Edges at Low SNR - Project Page</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-gray-900 text-white fixed w-full z-10">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <a href="#" class="text-xl font-semibold">Faint Edges</a>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#" class="hover:text-blue-400">Home</a>
+                    <a href="#summary" class="hover:text-blue-400">Summary</a>
+                    <a href="#code" class="hover:text-blue-400">Code</a>
+                    <a href="#paper" class="hover:text-blue-400">Paper</a>
+                    <a href="#abstract" class="hover:text-blue-400">Abstract</a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-		<title>Project Page - Faint Edges</title>
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-4 pt-20">
+        <!-- Title Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-4">Fast Detection of Curved Edges at Low SNR</h1>
+            <div class="text-xl mb-4">
+                <a href="index.html" class="text-blue-600 hover:text-blue-800">Nati Ofir</a>,
+                <a href="http://www.wisdom.weizmann.ac.il/~/meirav/" class="text-blue-600 hover:text-blue-800">Meirav Galun</a>,
+                <a href="http://www.wisdom.weizmann.ac.il/~nadler/" class="text-blue-600 hover:text-blue-800">Boaz Nadler</a>
+                and
+                <a href="http://www.wisdom.weizmann.ac.il/~/ronen/" class="text-blue-600 hover:text-blue-800">Ronen Basri</a>
+            </div>
+            <div class="text-xl font-semibold">CVPR 2016</div>
+        </div>
 
-    		<!-- Bootstrap core CSS -->
-    		<link href="index_files/bootstrap.css" rel="stylesheet">
+        <!-- Results Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+            <div class="space-y-2">
+                <h3 class="text-center font-bold">Input Image</h3>
+                <img src="./retina/9.png" alt="Input Image" class="w-full border border-gray-400">
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-center font-bold">Our Method</h3>
+                <img src="./retina/9_wide.png" alt="Our Method" class="w-full border border-gray-400">
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-center font-bold">Canny 1986</h3>
+                <img src="./retina/9_B_1_big.png" alt="Canny" class="w-full border border-gray-400">
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-center font-bold">Crisp 2014</h3>
+                <img src="./retina/9_B_3_big.png" alt="Crisp" class="w-full border border-gray-400">
+            </div>
+        </div>
 
-    		<!-- Custom styles for this template -->
-    		<link href="index_files/starter-template.css" rel="stylesheet">
+        <!-- Summary Section -->
+        <section id="summary" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6">Summary</h2>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="font-bold text-xl mb-2">Objective:</h3>
+                        <p>Efficient (near linear time) detection of faint curved edges in noisy images</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl mb-2">Our solution:</h3>
+                        <p>An efficient hierarchical algorithm to examine an exponential number of candidate curved edges</p>
+                        <p>Uses statistically rigorous adaptive threshold to detect edges at very low SNRs</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl mb-2">See our poster for more details:</h3>
+                        <a href="cvpr16-poster.pdf" class="block w-48">
+                            <img src="poster.png"" alt="Poster" class="border border-gray-400">
+                            <p class="text-blue-600 hover:text-blue-800 mt-2">Download Poster</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-		<script type="text/x-mathjax-config">
-		MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
-		</script>
-		<script type="text/javascript"
-		src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-		</script>
-	</head>
-	<body>
+        <!-- Code and Paper Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <!-- Code Section -->
+            <section id="code" class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-3xl font-bold mb-6">Code</h2>
+                <div class="space-y-4">
+                    <div class="flex space-x-4">
+                        <a href="https://github.com/NatiOfir/FastEdgesCpp" class="text-blue-600 hover:text-blue-800">[CODE-C++]</a>
+                        <a href="https://github.com/NatiOfir/TrianglesEdgeDetection" class="text-blue-600 hover:text-blue-800">[CODE-Matlab]</a>
+                    </div>
+                    <div>
+                        <h3 class="font-bold mb-2">Usage:</h3>
+                        <p>Run demo.cpp to see our detection results on noisy and real images.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold mb-2">Requirements:</h3>
+                        <ul class="list-disc list-inside">
+                            <li>Visual Studio 2012</li>
+                            <li>OpenCV 2.4.10</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
 
-	    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-	      <div class="container">
-	        <div class="navbar-header">
-	          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-	            <span class="sr-only">Toggle navigation</span>
-	            <span class="icon-bar"></span>
-	            <span class="icon-bar"></span>
-	            <span class="icon-bar"></span>
-	          </button>
-	          <a class="navbar-brand" href="#">Faint Edges</a>
-	        </div>
-	        <div class="collapse navbar-collapse">
-	          <ul class="nav navbar-nav">
-	            <li class="active"><a href="#">Home</a></li>
-		<li><a href="#summary">Summary</a></li>
-	            <li><a href="#code">Code</a></li>
-				<li><a href="#paper">Paper</a></li>
-				<li><a href="#abstract">Abstract</a></li>
-	            	          </ul>
-	        </div><!--/.nav-collapse -->
-	      </div>
-	    </div>
+            <!-- Paper Section -->
+            <section id="paper" class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-3xl font-bold mb-6">Paper</h2>
+                <div class="flex flex-col items-center">
+                    <a href="https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Ofir_Fast_Detection_of_CVPR_2016_paper.pdf">
+                        <img src="paper.png" alt="Paper Preview" class="border border-gray-400 mb-4">
+                        <p class="text-blue-600 hover:text-blue-800">Download PDF</p>
+                    </a>
+                </div>
+            </section>
+        </div>
 
-   	
-	<div class="container">
+        <!-- Abstract Section -->
+        <section id="abstract" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6">Abstract</h2>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <p class="text-gray-700 leading-relaxed">
+                    Detecting edges is a fundamental problem in computer vision with many applications, some involving very noisy images. While most edge detection methods are fast, they perform well only on relatively clean images. Unfortunately, sophisticated methods that are robust to high levels of noise are quite slow. In this paper we develop a novel multiscale method to detect curved edges in noisy images. Even though our algorithm searches for edges over an exponentially large set of candidate curves, its runtime is nearly linear in the total number of image pixels. As we demonstrate experimentally, our algorithm is orders of magnitude faster than previous methods designed to deal with high noise levels. At the same time it obtains comparable and often superior results to existing methods on a variety of challenging noisy images.
+                </p>
+            </div>
+        </section>
+    </div>
 
-	<div class="starter-template">
-		<h1>
-		Fast Detection of Curved Edges at Low SNR
-		</h1>
-		<font style="font-size: 16pt">
-		<a href = "index.html">Nati Ofir</a>, <a href = "http://www.wisdom.weizmann.ac.il/~/meirav/">Meirav Galun</a>, <a href = "http://www.wisdom.weizmann.ac.il/~nadler/">Boaz Nadler</a>
-		and <a href = "http://www.wisdom.weizmann.ac.il/~/ronen/">Ronen Basri</a>
-		<br>
-		<b>CVPR 2016</b>
-		<br><br>
-		</font>
-		<center>
-		<table align = "middle">
-		<tr>
-		<td><b><center>Input Image</td><td><b><center>Our Method</td><td><b><center>Canny 1986</td><td><b><center>Crisp 2014</td>
-		</tr>
-		<tr>
-		<td><img src = "./retina/9.png" style='border:1px solid #000000' width = 225 height = 151></td>
-		<td><img src = "./retina/9_wide.png" style='border:1px solid #000000' width = 225 height = 151></td>
-		<td><img src = "./retina/9_B_1_big.png" style='border:1px solid #000000' width = 225 height = 151></td>
-		<td><img src = "./retina/9_B_3_big.png" style='border:1px solid #000000' width = 225 height = 151></td>
-		</tr>
-		</table>
-		</center>
-		<div align="left">
-		<hr>
-		<a id="summary"></a>
-		<h1>
-		Summary
-		</h1>
-		<br>
-		<b>Objective:</b>
-		<br>Efficient (near linear time) detection of faint curved edges in noisy images
-		
-		<br><br><b>Our solution:</b>
-		<br>An efficient hierarchical algorithm to examine an exponential number of candidate curved edges
-		<br>Uses statistically rigorous adaptive threshold to detect edges at very low SNRs
-		
-		<br><br><b>See our poster for more details:</b><br>
-		<a href = "cvpr16-poster.pdf"><img src = "poster.png" style='border:1px solid #000000' height = 150><br>Download Poster</a>
-		<hr>
-		
-		<table>
-		<tr>
-		<td width = 600 valign = "top">
-		<a id="code"></a>
-		<h1>Code</h1>
-		<a href = "https://github.com/NatiOfir/FastEdgesCpp">[CODE-C++]</a> <a href = "https://github.com/NatiOfir/TrianglesEdgeDetection">[CODE-Matlab]</a>.
-		<br>
-		<br>
-		<b>Usage:</b>
-		<br>Run demo.cpp to see our detection results on noisy and real images.
-		<br><br>
-		<b>Requirements:</b>
-		<br>Visual Studio 2012
-		<br>OpenCV 2.4.10
-		</td>
-		<td valign = "top" align = "center">
-		<a id="paper"></a>
-		<h1>Paper</h1>
-		<a href = "https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Ofir_Fast_Detection_of_CVPR_2016_paper.pdf"><img src = "paper.png" style='border:1px solid #000000' height = 300><br>Download PDF</a>
-		</td>
-		</tr>
-		</table>
-		<hr>
-		<a id="abstract"></a>
-		<h1>
-		Abstract
-		</h1>
-		Detecting edges is a fundamental problem in computer vision with many applications, some involving very noisy images. While most edge detection methods are fast, they perform well only on relatively clean images. Unfortunately, sophisticated methods that are robust to high levels of noise are quite slow. In this paper we develop a novel multiscale method to detect curved edges in noisy images. Even though our algorithm searches for edges over an exponentially large set of candidate curves, its runtime is nearly linear in the total number of image pixels.
-		As we demonstrate experimentally, our algorithm is orders of magnitude faster than previous methods designed to deal with high noise levels.  At the same time it obtains comparable and often superior results to existing methods on a variety of challenging noisy images.
-		<hr>
-		
-		</div>
-
-	</div><!-- /.container -->
-	</left>
-
-		<!-- Bootstrap core JavaScript
-		================================================== -->
-		<!-- Placed at the end of the document so the pages load faster -->
-		<script src="index_files/jquery-1.js"></script>
-		<script src="index_files/bootstrap.js"></script>
-	</body>
-	<script>
-	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-	  ga('create', 'UA-52158441-1', 'weizmann.ac.il');
-	  ga('send', 'pageview');
-
-	</script>
-
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-52158441-1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-52158441-1');
+    </script>
+</body>
 </html>
-
-
-
