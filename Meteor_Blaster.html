@@ -1,0 +1,357 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Meteor Blaster</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Barlow:wght@500;700&display=swap">
+<style>
+/* Layout: full-height portrait playfield, ship at the bottom, HUD bar above; overlay for start / game over.
+   Single committed look: a dusk-violet sky with an amber ship and rust-red meteors. */
+:root {
+  --bg: #120f1f;
+  --sky: #1c1733;
+  --rail: #2d2650;
+  --ship: #ffb238;
+  --shot: #fff1c4;
+  --rock: #c8553d;
+  --ink: #f4effc;
+  --muted: #a99fc9;
+  --display: "Russo One", "Arial Black", sans-serif;
+  --body: "Barlow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body);
+  overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+.app { height: 100%; display: flex; flex-direction: column; gap: 10px; padding-block: 10px; box-sizing: border-box; max-width: 520px; margin: 0 auto; }
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.hud { display: flex; gap: 18px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.hud .num { font-family: var(--display); font-size: 26px; color: var(--ship); }
+.hud .lbl { font-weight: 700; font-size: 12px; letter-spacing: .12em; color: var(--muted); margin-inline-start: 6px; }
+.lives { font-family: var(--display); font-size: 18px; color: var(--rock); letter-spacing: 2px; }
+button {
+  font: 700 14px var(--body); letter-spacing: .04em; color: var(--ink); background: transparent;
+  border: 1.5px solid var(--rail); border-radius: 999px; padding: 8px 16px; cursor: pointer;
+}
+button:focus-visible { outline: 2px solid var(--ship); outline-offset: 2px; }
+.stage { position: relative; flex: 1; min-height: 0; }
+canvas { display: block; width: 100%; height: 100%; border-radius: 16px; background: var(--sky); }
+.overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; text-align: center; background: rgba(18,15,31,.8); border-radius: 16px; padding: 20px;
+}
+.overlay h1 { font-family: var(--display); font-size: clamp(30px, 10vw, 46px); margin: 0; line-height: 1.05; color: var(--ship); text-wrap: balance; }
+.overlay p { margin: 0; max-width: 32ch; line-height: 1.5; color: #ddd5f0; font-size: 15px; }
+.overlay .best { font-size: 13px; letter-spacing: .1em; color: var(--muted); }
+.overlay .go { background: var(--ship); border-color: var(--ship); color: #2a1a00; font-size: 18px; padding: 12px 32px; }
+.levels { display: flex; gap: 8px; }
+.levels button[aria-pressed="true"] { background: var(--rail); border-color: var(--muted); }
+</style>
+
+<div class="app">
+  <div class="bar">
+    <div class="hud">
+      <span><span class="num" id="sc">0</span><span class="lbl">SCORE</span></span>
+      <span class="lives" id="lives" aria-label="Lives">♥♥♥</span>
+    </div>
+    <button id="pauseBtn" type="button">Pause</button>
+  </div>
+  <div class="stage">
+    <canvas id="c" aria-label="Shooting game"></canvas>
+    <div class="overlay" id="ov">
+      <h1 id="ovTitle">Meteor Blaster</h1>
+      <p id="ovText">Drag your finger to fly the ship up, down, left and right. It fires on its own. Blast the falling meteors and don't let them hit you. Grab the gold stars for a triple shot.</p>
+      <p class="best" id="best"></p>
+      <div class="levels" id="levels">
+        <button type="button" data-lv="0" id="lv0">Easy</button>
+        <button type="button" data-lv="1" id="lv1" aria-pressed="true">Normal</button>
+        <button type="button" data-lv="2" id="lv2">Hard</button>
+      </div>
+      <button class="go" id="goBtn" type="button">Launch</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const ov = document.getElementById('ov'), ovTitle = document.getElementById('ovTitle'), ovText = document.getElementById('ovText');
+  const scEl = document.getElementById('sc'), livesEl = document.getElementById('lives'), bestEl = document.getElementById('best');
+  const pauseBtn = document.getElementById('pauseBtn'), goBtn = document.getElementById('goBtn');
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = { sky: css('--sky'), ship: css('--ship'), shot: css('--shot'), rock: css('--rock'), muted: css('--muted') };
+  const LV = [ {spawn: .9, fall: .75, ramp: .6}, {spawn: 1.3, fall: 1, ramp: 1}, {spawn: 1.8, fall: 1.25, ramp: 1.4} ];
+  let lv = 1, W = 0, H = 0, dpr = 1;
+  const s = { running: false, paused: false, score: 0, lives: 3, t: 0, spawnT: 0, fireT: 0, inv: 0, triple: 0, shake: 0 };
+  const ship = { x: 0, y: 0, r: 16 };
+  let target = null, rocks = [], shots = [], parts = [], stars = [], bg = [];
+  const keys = {};
+
+  let best = 0;
+  try { best = +localStorage.getItem('meteor-best') || 0; } catch (e) {}
+  function showBest() { bestEl.textContent = best ? `BEST ${best}` : ''; }
+  showBest();
+
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const kx = W ? r.width / W : 1, ky = H ? r.height / H : 1;
+    W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ship.r = Math.max(14, W * 0.045);
+    if (s.running) { ship.x *= kx; ship.y *= ky; } else { ship.x = W / 2; ship.y = H * 0.85; }
+    bg = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * .8 + .2 }));
+    draw();
+  }
+
+  let ac = null;
+  function tone(f, d = .05, type = 'square', vol = .04, slide = 0) {
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = f;
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), ac.currentTime + d);
+      g.gain.value = vol; o.connect(g); g.connect(ac.destination);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
+      o.start(); o.stop(ac.currentTime + d);
+    } catch (e) {}
+  }
+
+  function setLives() { livesEl.textContent = '♥'.repeat(Math.max(0, s.lives)) + '♡'.repeat(Math.max(0, 3 - s.lives)); }
+  function setScore() { scEl.textContent = s.score; }
+
+  function start() {
+    Object.assign(s, { running: true, paused: false, score: 0, lives: 3, t: 0, spawnT: .6, fireT: 0, inv: 1.5, triple: 0, shake: 0 });
+    rocks = []; shots = []; parts = []; stars = [];
+    ship.x = W / 2; ship.y = H * 0.85; target = null;
+    setLives(); setScore();
+    ov.hidden = true; pauseBtn.textContent = 'Pause';
+    tone(440, .15, 'square', .05, 2);
+    last = performance.now();
+  }
+
+  function gameOver() {
+    s.running = false;
+    const newBest = s.score > best;
+    if (newBest) { best = s.score; try { localStorage.setItem('meteor-best', best); } catch (e) {} }
+    ovTitle.textContent = newBest ? 'New best!' : 'Ship down';
+    ovText.textContent = `You scored ${s.score}. Ready for another run?`;
+    goBtn.textContent = 'Play again';
+    showBest();
+    ov.hidden = false;
+  }
+
+  function spawnRock() {
+    const L = LV[lv], diff = 1 + s.t / 60 * L.ramp;
+    const big = Math.random() < .3;
+    const r = (big ? 0.075 : 0.04 + Math.random() * 0.02) * W;
+    const zig = Math.random() < Math.min(.4, .05 + s.t / 200);
+    const pts = Array.from({ length: 9 }, (_, i) => ({ a: i / 9 * 6.283, k: .78 + Math.random() * .3 }));
+    rocks.push({
+      x: r + Math.random() * (W - 2 * r), y: -r, r,
+      vx: (Math.random() - .5) * W * .12, vy: H * (.16 + Math.random() * .12) * L.fall * Math.min(2.2, diff),
+      hp: big ? 4 : 1 + (Math.random() < .3 ? 1 : 0), max: 0, zig, ph: Math.random() * 6, rot: 0, spin: (Math.random() - .5) * 2, pts, hit: 0
+    });
+    rocks[rocks.length - 1].max = rocks[rocks.length - 1].hp;
+  }
+
+  function burst(x, y, col, n, sp) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * 6.283, v = (.3 + Math.random()) * sp;
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5 + Math.random() * .4, col });
+    }
+  }
+
+  function fire() {
+    const v = -H * 1.4, sy = ship.y - ship.r;
+    shots.push({ x: ship.x, y: sy, vx: 0, vy: v });
+    if (s.triple > 0) {
+      shots.push({ x: ship.x - ship.r * .6, y: sy + 6, vx: -W * .25, vy: v });
+      shots.push({ x: ship.x + ship.r * .6, y: sy + 6, vx: W * .25, vy: v });
+    }
+    tone(880, .04, 'square', .02, .6);
+  }
+
+  function step(dt) {
+    const L = LV[lv];
+    s.t += dt;
+    // ship movement: finger target or keys
+    const kx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0);
+    const ky = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0);
+    if (kx || ky) { target = null; ship.x += kx * W * 0.9 * dt; ship.y += ky * H * 0.6 * dt; }
+    else if (target) { const k = Math.min(1, dt * 18); ship.x += (target[0] - ship.x) * k; ship.y += (target[1] - ship.y) * k; }
+    ship.x = Math.max(ship.r, Math.min(W - ship.r, ship.x));
+    ship.y = Math.max(H * 0.3, Math.min(H - ship.r - 6, ship.y));
+
+    s.fireT -= dt;
+    if (s.fireT <= 0) { fire(); s.fireT = .16; }
+    if (s.inv > 0) s.inv -= dt;
+    if (s.triple > 0) s.triple -= dt;
+    if (s.shake > 0) s.shake -= dt;
+
+    s.spawnT -= dt;
+    if (s.spawnT <= 0) {
+      spawnRock();
+      const rate = L.spawn * (1 + s.t / 45 * L.ramp);
+      s.spawnT = (.6 + Math.random() * .7) / rate;
+      if (Math.random() < .045) stars.push({ x: 20 + Math.random() * (W - 40), y: -12, r: Math.max(10, W * .03), ph: 0 });
+    }
+
+    for (const b of shots) { b.x += b.vx * dt; b.y += b.vy * dt; }
+    shots = shots.filter(b => b.y > -20 && b.x > -20 && b.x < W + 20);
+
+    for (const r of rocks) {
+      r.ph += dt * 3;
+      r.x += (r.vx + (r.zig ? Math.sin(r.ph) * W * .35 : 0)) * dt;
+      r.y += r.vy * dt; r.rot += r.spin * dt;
+      if (r.x < r.r) { r.x = r.r; r.vx = Math.abs(r.vx); }
+      if (r.x > W - r.r) { r.x = W - r.r; r.vx = -Math.abs(r.vx); }
+      if (r.hit > 0) r.hit -= dt;
+      for (const b of shots) {
+        if (b.dead) continue;
+        if (Math.hypot(b.x - r.x, b.y - r.y) < r.r + 3) {
+          b.dead = true; r.hp--; r.hit = .08;
+          if (r.hp <= 0) {
+            r.dead = true;
+            s.score += r.max * 10 + (r.zig ? 15 : 0); setScore();
+            burst(r.x, r.y, C.rock, 14 + r.max * 4, W * .5);
+            tone(160 + Math.random() * 60, .18, 'sawtooth', .05, .4);
+          } else { burst(b.x, b.y, C.shot, 3, W * .2); tone(300, .03, 'triangle', .03); }
+          break;
+        }
+      }
+      if (!r.dead && s.inv <= 0 && Math.hypot(ship.x - r.x, ship.y - r.y) < r.r + ship.r * .75) {
+        r.dead = true; s.lives--; setLives(); s.inv = 1.8; s.shake = .3;
+        burst(ship.x, ship.y, C.ship, 24, W * .6); tone(90, .4, 'sawtooth', .07, .5);
+        if (s.lives <= 0) { gameOver(); return; }
+      }
+    }
+    shots = shots.filter(b => !b.dead);
+    rocks = rocks.filter(r => !r.dead && r.y < H + r.r * 2);
+
+    for (const st of stars) {
+      st.y += H * .2 * dt; st.ph += dt * 4;
+      if (Math.hypot(ship.x - st.x, ship.y - st.y) < st.r + ship.r) {
+        st.dead = true; s.triple = 8; s.score += 25; setScore();
+        tone(660, .08, 'square', .04); setTimeout(() => tone(990, .12, 'square', .04), 80);
+      }
+    }
+    stars = stars.filter(st => !st.dead && st.y < H + 20);
+
+    for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .96; p.vy *= .96; p.life -= dt; }
+    parts = parts.filter(p => p.life > 0);
+    for (const b of bg) { b.y += H * .05 * b.z * dt; if (b.y > H) { b.y = 0; b.x = Math.random() * W; } }
+  }
+
+  function drawShip() {
+    const { x, y, r } = ship;
+    if (s.inv > 0 && Math.floor(s.inv * 10) % 2 === 0) return;
+    // engine flame
+    ctx.fillStyle = 'rgba(255,120,60,.85)';
+    const fl = r * (.55 + Math.random() * .35);
+    ctx.beginPath(); ctx.moveTo(x - r * .3, y + r * .7); ctx.lineTo(x, y + r * .7 + fl); ctx.lineTo(x + r * .3, y + r * .7); ctx.fill();
+    // body
+    ctx.fillStyle = C.ship;
+    ctx.beginPath();
+    ctx.moveTo(x, y - r * 1.15);
+    ctx.lineTo(x + r * .45, y - r * .1);
+    ctx.lineTo(x + r, y + r * .55);
+    ctx.lineTo(x + r * .35, y + r * .75);
+    ctx.lineTo(x - r * .35, y + r * .75);
+    ctx.lineTo(x - r, y + r * .55);
+    ctx.lineTo(x - r * .45, y - r * .1);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = s.triple > 0 ? '#fff1c4' : '#2a1a00';
+    ctx.beginPath(); ctx.ellipse(x, y - r * .2, r * .18, r * .32, 0, 0, 6.283); ctx.fill();
+  }
+
+  function drawRock(r) {
+    ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.rot);
+    ctx.fillStyle = r.hit > 0 ? '#fff1c4' : (r.zig ? '#9f62d8' : C.rock);
+    ctx.beginPath();
+    r.pts.forEach((p, i) => { const px = Math.cos(p.a) * r.r * p.k, py = Math.sin(p.a) * r.r * p.k; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.22)';
+    ctx.beginPath(); ctx.arc(-r.r * .25, -r.r * .15, r.r * .2, 0, 6.283); ctx.arc(r.r * .3, r.r * .25, r.r * .13, 0, 6.283); ctx.fill();
+    ctx.restore();
+    if (r.max > 1 && r.hp < r.max) {
+      ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(r.x - r.r, r.y - r.r - 8, r.r * 2, 3);
+      ctx.fillStyle = C.shot; ctx.fillRect(r.x - r.r, r.y - r.r - 8, r.r * 2 * r.hp / r.max, 3);
+    }
+  }
+
+  function drawStar(st) {
+    ctx.save(); ctx.translate(st.x, st.y); ctx.rotate(st.ph * .5);
+    ctx.fillStyle = '#ffd84a';
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 - Math.PI / 2, rr = i % 2 ? st.r * .45 : st.r; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+
+  function draw() {
+    if (!W) return;
+    ctx.save();
+    if (s.shake > 0) ctx.translate((Math.random() - .5) * 10, (Math.random() - .5) * 10);
+    ctx.fillStyle = C.sky; ctx.fillRect(-10, -10, W + 20, H + 20);
+    for (const b of bg) { ctx.globalAlpha = b.z * .8; ctx.fillStyle = '#e8e0ff'; ctx.fillRect(b.x, b.y, b.z * 2, b.z * 2); }
+    ctx.globalAlpha = 1;
+    for (const st of stars) drawStar(st);
+    for (const r of rocks) drawRock(r);
+    ctx.fillStyle = C.shot;
+    for (const b of shots) { ctx.fillRect(b.x - 1.5, b.y - 7, 3, 12); }
+    for (const p of parts) { ctx.globalAlpha = Math.max(0, p.life * 1.6); ctx.fillStyle = p.col; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); }
+    ctx.globalAlpha = 1;
+    drawShip();
+    if (s.running && s.triple > 0) {
+      ctx.fillStyle = '#ffd84a'; ctx.font = '700 12px Barlow, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`TRIPLE SHOT ${Math.ceil(s.triple)}s`, 12, 20);
+    }
+    ctx.restore();
+  }
+
+  let last = performance.now();
+  function loop(t) {
+    const dt = Math.min(0.033, (t - last) / 1000); last = t;
+    if (s.running && !s.paused) step(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // Touch / mouse: ship follows the pointer, lifted above the finger so it stays visible
+  function setTarget(e) {
+    const r = cv.getBoundingClientRect();
+    const lift = e.pointerType === 'touch' ? ship.r * 3 : 0;
+    target = [e.clientX - r.left, e.clientY - r.top - lift];
+  }
+  cv.addEventListener('pointerdown', e => { setTarget(e); cv.setPointerCapture?.(e.pointerId); });
+  cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons || e.pointerType === 'touch') setTarget(e); });
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  window.addEventListener('keydown', e => { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); });
+  window.addEventListener('keyup', e => { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
+
+  goBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', () => {
+    if (!s.running) return;
+    s.paused = !s.paused;
+    pauseBtn.textContent = s.paused ? 'Resume' : 'Pause';
+    last = performance.now();
+  });
+  document.getElementById('levels').addEventListener('click', e => {
+    const bt = e.target.closest('button[data-lv]'); if (!bt) return;
+    lv = +bt.dataset.lv;
+    document.querySelectorAll('#levels button').forEach(x => x.setAttribute('aria-pressed', x === bt ? 'true' : 'false'));
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && s.running && !s.paused) pauseBtn.click(); });
+
+  new ResizeObserver(resize).observe(cv);
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,240 @@
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Pocket Ping Pong</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;600&display=swap">
+<style>
+/* Layout: one full-height portrait table, player at the bottom, overlay for start / game over */
+:root {
+  --bg: #0b1f1a;
+  --table: #0f2e26;
+  --line: #2f6b5a;
+  --ink: #e9f5ef;
+  --ball: #ffd447;
+  --you: #5be3b0;
+  --cpu: #ff7a6b;
+  --display: "Rubik Mono One", "Arial Black", sans-serif;
+  --body: "Rubik", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body);
+  overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+.app { height: 100%; display: flex; flex-direction: column; gap: 10px; padding-block: 10px; box-sizing: border-box; max-width: 520px; margin: 0 auto; }
+.bar { display: flex; justify-content: space-between; align-items: center; }
+.score { display: flex; gap: 18px; align-items: baseline; font-family: var(--display); font-size: 28px; font-variant-numeric: tabular-nums; }
+.score .lbl { font-family: var(--body); font-size: 12px; letter-spacing: .08em; opacity: .7; margin-inline-start: 4px; }
+.you { color: var(--you); } .cpu { color: var(--cpu); }
+button {
+  font: 600 14px var(--body); color: var(--ink); background: transparent;
+  border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+}
+button:focus-visible { outline: 2px solid var(--ball); outline-offset: 2px; }
+.stage { position: relative; flex: 1; min-height: 0; }
+canvas { display: block; width: 100%; height: 100%; border-radius: 14px; background: var(--table); }
+.overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; text-align: center; background: rgba(11,31,26,.78); border-radius: 14px; padding: 20px;
+}
+.overlay h1 { font-family: var(--display); font-size: clamp(26px, 8vw, 40px); margin: 0; color: var(--ball); text-wrap: balance; }
+.overlay p { margin: 0; max-width: 30ch; line-height: 1.5; opacity: .9; }
+.overlay .go { background: var(--ball); color: #1a1500; border-color: var(--ball); font-size: 18px; padding: 12px 28px; }
+.levels { display: flex; gap: 8px; }
+.levels button[aria-pressed="true"] { background: var(--line); }
+</style>
+
+<div class="app">
+  <div class="bar">
+    <div class="score">
+      <span class="you" id="sYou">0</span><span class="lbl">YOU</span>
+      <span class="cpu" id="sCpu">0</span><span class="lbl">CPU</span>
+    </div>
+    <button id="pauseBtn" type="button">Pause</button>
+  </div>
+  <div class="stage">
+    <canvas id="c"></canvas>
+    <div class="overlay" id="ov">
+      <h1 id="ovTitle">Ping Pong</h1>
+      <p id="ovText">Drag your finger across the screen to move the bottom paddle. First to 7 wins.</p>
+      <div class="levels" id="levels">
+        <button type="button" data-lv="0" id="lv0">Easy</button>
+        <button type="button" data-lv="1" id="lv1" aria-pressed="true">Normal</button>
+        <button type="button" data-lv="2" id="lv2">Hard</button>
+      </div>
+      <button class="go" id="goBtn" type="button">Start</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const ov = document.getElementById('ov'), ovTitle = document.getElementById('ovTitle'), ovText = document.getElementById('ovText');
+  const sYou = document.getElementById('sYou'), sCpu = document.getElementById('sCpu');
+  const pauseBtn = document.getElementById('pauseBtn'), goBtn = document.getElementById('goBtn');
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = { table: css('--table'), line: css('--line'), ball: css('--ball'), you: css('--you'), cpu: css('--cpu') };
+  const WIN = 7;
+  const LV = [ {cpu: .55, spd: .9}, {cpu: .8, spd: 1}, {cpu: 1.05, spd: 1.15} ];
+  let lv = 1;
+  let W = 0, H = 0, dpr = 1;
+  const s = { you: 0, cpu: 0, running: false, paused: false, serveWait: 0 };
+  const p = { x: 0, w: 0, h: 0 }, q = { x: 0 };
+  const b = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
+  let targetX = null;
+
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const oldW = W || r.width;
+    W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    p.w = Math.max(60, W * 0.24); p.h = 12; b.r = Math.max(6, W * 0.022);
+    const k = W / oldW; p.x *= k; q.x *= k; b.x *= k;
+    if (!s.running) { p.x = q.x = W / 2; b.x = W / 2; b.y = H / 2; }
+    draw();
+  }
+
+  // Sound
+  let ac = null;
+  function beep(f, d = 0.05) {
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'square'; o.frequency.value = f; g.gain.value = 0.06;
+      o.connect(g); g.connect(ac.destination);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
+      o.start(); o.stop(ac.currentTime + d);
+    } catch (e) {}
+  }
+
+  function serve(toward) {
+    b.x = W / 2; b.y = H / 2;
+    const base = H * 0.55 * LV[lv].spd;
+    const ang = (Math.random() * 0.8 - 0.4);
+    b.vx = Math.sin(ang) * base; b.vy = Math.cos(ang) * base * toward;
+    s.serveWait = 0.7;
+  }
+
+  function start() {
+    s.you = 0; s.cpu = 0; updScore();
+    p.x = q.x = W / 2; s.running = true; s.paused = false;
+    ov.hidden = true; pauseBtn.textContent = 'Pause';
+    beep(660, .08);
+    serve(Math.random() < .5 ? 1 : -1);
+    last = performance.now();
+  }
+
+  function updScore() { sYou.textContent = s.you; sCpu.textContent = s.cpu; }
+
+  function point(youScored) {
+    if (youScored) s.you++; else s.cpu++;
+    updScore(); beep(youScored ? 880 : 220, .18);
+    if (s.you >= WIN || s.cpu >= WIN) {
+      s.running = false;
+      ovTitle.textContent = s.you > s.cpu ? 'You win!' : 'CPU wins';
+      ovText.textContent = `Final score: ${s.you} – ${s.cpu}. Another round?`;
+      goBtn.textContent = 'Play again';
+      ov.hidden = false;
+      return;
+    }
+    serve(youScored ? -1 : 1);
+  }
+
+  function hitPaddle(px, py, dir) {
+    const off = (b.x - px) / (p.w / 2);        // -1..1
+    const speed = Math.min(Math.hypot(b.vx, b.vy) * 1.05, H * 1.6);
+    const ang = off * 1.0;                     // up to ~57°
+    b.vx = Math.sin(ang) * speed;
+    b.vy = Math.cos(ang) * speed * dir;
+    b.y = py + dir * (b.r + 1);
+    beep(dir < 0 ? 520 : 400);
+  }
+
+  function step(dt) {
+    // player follows finger
+    if (targetX !== null) p.x += (targetX - p.x) * Math.min(1, dt * 25);
+    p.x = Math.max(p.w / 2, Math.min(W - p.w / 2, p.x));
+    // cpu
+    const cpuMax = W * 0.9 * LV[lv].cpu;
+    const aim = b.vy < 0 ? b.x : W / 2;
+    const d = aim - q.x;
+    q.x += Math.sign(d) * Math.min(Math.abs(d), cpuMax * dt);
+    q.x = Math.max(p.w / 2, Math.min(W - p.w / 2, q.x));
+
+    if (s.serveWait > 0) { s.serveWait -= dt; return; }
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx); beep(300, .03); }
+    if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx); beep(300, .03); }
+
+    const pyY = H - 22, cpY = 22;
+    if (b.vy > 0 && b.y + b.r >= pyY - p.h / 2 && b.y < pyY + p.h && Math.abs(b.x - p.x) <= p.w / 2 + b.r) hitPaddle(p.x, pyY - p.h / 2, -1);
+    if (b.vy < 0 && b.y - b.r <= cpY + p.h / 2 && b.y > cpY - p.h && Math.abs(b.x - q.x) <= p.w / 2 + b.r) hitPaddle(q.x, cpY + p.h / 2, 1);
+
+    if (b.y > H + b.r * 2) point(false);
+    else if (b.y < -b.r * 2) point(true);
+  }
+
+  function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); ctx.fill(); }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = C.table; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 2;
+    ctx.strokeRect(6, 6, W - 12, H - 12);
+    ctx.setLineDash([10, 10]); ctx.beginPath(); ctx.moveTo(6, H / 2); ctx.lineTo(W - 6, H / 2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(W / 2, 6); ctx.lineTo(W / 2, H - 6); ctx.globalAlpha = .35; ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.cpu; rr(q.x - p.w / 2, 22 - p.h / 2, p.w, p.h, 6);
+    ctx.fillStyle = C.you; rr(p.x - p.w / 2, H - 22 - p.h / 2, p.w, p.h, 6);
+    if (s.serveWait <= 0 || Math.floor(s.serveWait * 8) % 2 === 0) {
+      ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  let last = performance.now();
+  function loop(t) {
+    const dt = Math.min(0.033, (t - last) / 1000); last = t;
+    if (s.running && !s.paused) step(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // Input
+  function setTarget(e) {
+    const r = cv.getBoundingClientRect();
+    targetX = (e.clientX - r.left);
+  }
+  cv.addEventListener('pointerdown', e => { setTarget(e); cv.setPointerCapture?.(e.pointerId); });
+  cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons || e.pointerType === 'touch') setTarget(e); });
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') targetX = (targetX ?? p.x) - W * 0.12;
+    if (e.key === 'ArrowRight') targetX = (targetX ?? p.x) + W * 0.12;
+  });
+
+  goBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', () => {
+    if (!s.running) return;
+    s.paused = !s.paused;
+    pauseBtn.textContent = s.paused ? 'Resume' : 'Pause';
+    last = performance.now();
+  });
+  document.getElementById('levels').addEventListener('click', e => {
+    const bt = e.target.closest('button[data-lv]'); if (!bt) return;
+    lv = +bt.dataset.lv;
+    document.querySelectorAll('#levels button').forEach(x => x.setAttribute('aria-pressed', x === bt ? 'true' : 'false'));
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && s.running && !s.paused) pauseBtn.click(); });
+
+  new ResizeObserver(resize).observe(cv);
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
