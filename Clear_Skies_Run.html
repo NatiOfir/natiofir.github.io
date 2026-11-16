@@ -1,0 +1,332 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Clear Skies Run</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one game stage (map + satellite above it), HUD strip under it. Single dark night-orbit look, viridis for pollution as in TEMPO maps. */
+:root{
+  --space:#0b1129; --panel:#141d42; --line:#2a3768; --ink:#e6ebff; --dim:#97a3cf;
+  --ocean:#10204a; --land:#26335e; --land-edge:#4a5a92;
+  --vy:#fde725; --vg:#5ec962; --vt:#21918c; --vp:#3b528b; --bad:#ff6b6b; --warn:#ffb347;
+  --display:"Chakra Petch",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--space);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,5.5vw,40px);line-height:1;margin:0}
+h1 span{color:var(--vy)}
+.sub{color:var(--dim);margin:6px 0 0;font-size:14px;max-width:60ch}
+.mute{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer}
+.stage{position:relative;width:100%;max-width:min(100%,calc(78vh * 1.08));margin:0 auto;aspect-ratio:1.08;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--space)}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+canvas:focus-visible,button:focus-visible{outline:2px solid var(--vy);outline-offset:2px}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,17,41,.82);padding:20px}
+.ov{max-width:440px;display:flex;flex-direction:column;gap:12px}
+.ov h2{font-family:var(--display);font-size:clamp(24px,5vw,34px);margin:0;line-height:1.1;text-wrap:balance}
+.ov p{margin:0;color:var(--dim)}
+.ov ul{margin:0;padding-left:18px;color:var(--ink);display:grid;gap:4px}
+.btn{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.04em;background:var(--vy);color:#1a1530;border:0;border-radius:4px;padding:12px 22px;cursor:pointer;align-self:flex-start}
+.big{font-family:var(--display);font-size:52px;color:var(--vy);line-height:1}
+.hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.hud{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+.k{font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.v{font:500 22px var(--mono);font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meter{height:8px;background:#0b1129;border-radius:4px;margin-top:8px;overflow:hidden}
+.meter i{display:block;height:100%;width:100%;background:var(--vg);transition:width .2s}
+.signal{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font:13px var(--mono);color:var(--dim);display:flex;gap:10px;align-items:center;min-height:44px}
+.chip{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;border-radius:3px;padding:3px 7px;flex:none;background:var(--line);color:var(--ink)}
+.chip.clean{background:rgba(94,201,98,.2);color:var(--vg)} .chip.mod{background:rgba(255,179,71,.18);color:var(--warn)} .chip.bad{background:rgba(255,107,107,.18);color:var(--bad)}
+.signal span:last-child{min-width:0}
+.help{color:var(--dim);font-size:13px;margin:0}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Clear Skies <span>Run</span></h1>
+      <p class="sub">Steer your field agent across North America to reach monitoring stations. Pollution is invisible until the TEMPO satellite scans over it, so read its signals and keep your lungs clean until 18:00.</p>
+    </div>
+    <button class="mute" id="mute" aria-pressed="false">Sound on</button>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" tabindex="0" aria-label="Game map of North America"></canvas>
+    <div class="overlay" id="ov">
+      <div class="ov" id="ovc">
+        <h2>Mission: calibrate the ground network</h2>
+        <ul>
+          <li>Tap, click or drag to send your agent somewhere. Arrow keys and WASD work too.</li>
+          <li>Reach the flashing <b style="color:var(--vy)">stations</b> for 100 points each.</li>
+          <li>TEMPO sweeps east to west. Colors show what it saw, then fade.</li>
+          <li>When the beam passes you, it pings a TempoNet estimate with its error bar.</li>
+          <li>Ozone builds through the afternoon, downwind of cities.</li>
+        </ul>
+        <button class="btn" id="start">Start the day</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="tile"><div class="k">Local time</div><div class="v" id="clock">08:00</div></div>
+    <div class="tile"><div class="k">Stations</div><div class="v" id="score">0</div></div>
+    <div class="tile"><div class="k">Lung health</div><div class="v" id="hp">100%</div><div class="meter"><i id="hpbar"></i></div></div>
+    <div class="tile"><div class="k">Wind</div><div class="v" id="wind">—</div></div>
+  </div>
+  <div class="signal" id="signal"><span class="chip" id="chip">No scan</span><span id="sigtext">Waiting for the first TEMPO scan.</span></div>
+  <p class="help">Satellite estimates carry TempoNet's test error: ±8.3 ppb for O₃ and ±4.4 ppb for NO₂. Pollution fields here are simulated for the game.</p>
+</div>
+
+<script>
+(()=>{
+// ---------- geography ----------
+const LON0=-130, LON1=-60, LAT0=60, LAT1=17, KX=Math.cos(40*Math.PI/180);
+const LAND=[[-130,60],[-130,55],[-127,51],[-125,49],[-124.5,46],[-124,42],[-124.3,40.4],[-122.5,37.7],[-120.6,34.5],[-117.2,32.7],[-115.8,30],[-114.2,28],[-112.1,25.5],[-109.9,22.9],[-111.5,26.5],[-113.5,29.5],[-114.7,31.7],[-112.8,31],[-111,29],[-109,26],[-106,23],[-105.3,20.5],[-104,19],[-101.5,17.8],[-98,16.5],[-94.5,16.1],[-92,14.5],[-88.5,15.5],[-88.5,17],[-87.5,21.5],[-90.3,21.2],[-90.5,19.5],[-92,18.6],[-94.5,18.2],[-96,19],[-97.3,21.5],[-97.7,24],[-97.2,27.5],[-94.5,29.4],[-93,29.7],[-90,29.1],[-89.2,30.3],[-87,30.4],[-85.2,29.7],[-84,30],[-82.7,28],[-81.8,26.1],[-80.4,25.2],[-80.1,26.8],[-81.3,30],[-81,31.7],[-79,33.6],[-76.5,34.7],[-75.5,35.5],[-76,37],[-75.6,38],[-74,39.7],[-73.9,40.6],[-72,41],[-70,41.6],[-70.6,42.6],[-70.2,43.6],[-67.5,44.6],[-66,45],[-64.5,45.4],[-65.8,43.6],[-63,44.6],[-61,45.4],[-61.5,47],[-64.5,48.5],[-66.5,49.2],[-62,50.1],[-59,50.5],[-57,51.5],[-58,54],[-61,56],[-62,58],[-64.5,60],[-77,60],[-77.5,58],[-77,55],[-79,52],[-82,52.5],[-85,55.2],[-92.5,57],[-94.5,59],[-94.8,60]];
+const LAKES=[
+ [[-92.1,46.7],[-89,48],[-86,48.8],[-84.6,47],[-84.6,46.5],[-87.5,46.4],[-90.4,46.6]],
+ [[-87.8,42],[-87.2,41.6],[-86.3,42.3],[-86.2,44],[-85,45.8],[-86.4,45.9],[-87.6,44.5],[-88,43]],
+ [[-84.7,45.9],[-82.5,45.3],[-80.3,45],[-80.9,44.4],[-81.7,43.2],[-82.4,43],[-83.4,44],[-83.4,45.1]],
+ [[-83.4,41.7],[-81.7,41.5],[-79,42.6],[-79.9,42.9],[-82.4,42]],
+ [[-79.8,43.3],[-77,43.2],[-76.2,43.9],[-77.7,44],[-79.4,43.7]]];
+const CUBA=[[-84.9,21.9],[-82,23.2],[-80,23.1],[-77,21.7],[-74.2,20.2],[-77.7,19.9],[-80,21.7],[-82.5,22.3]];
+const BORDERS=[
+ [[-123.3,49],[-95.2,49],[-89.5,48],[-84.6,46.5],[-82.5,45.3],[-82.4,43],[-83.1,42.1],[-79,42.8],[-79,43.3],[-76,44.3],[-74.7,45],[-71.5,45],[-70,46.5],[-69.2,47.4],[-67.8,47],[-67.8,45.7],[-67,44.8]],
+ [[-117.1,32.5],[-114.7,32.7],[-111,31.3],[-108.2,31.3],[-106.5,31.8],[-104.5,29.6],[-103,29],[-101.4,29.8],[-99.5,27.5],[-97.2,25.9]]];
+const CITIES=[
+ ["Los Angeles",-118.2,34.05,38,40],["Phoenix",-112.07,33.45,22,35],["Houston",-95.37,29.76,25,30],["Dallas",-96.8,32.78,22,25],
+ ["Chicago",-87.63,41.88,30,22],["New York",-74,40.71,38,30],["Washington",-77.04,38.9,22,25],["Boston",-71.06,42.36,20,18],
+ ["Atlanta",-84.39,33.75,22,25],["Denver",-104.99,39.74,20,30],["Salt Lake City",-111.89,40.76,18,28],["Seattle",-122.33,47.6,18,10],
+ ["San Francisco",-122.42,37.77,20,15],["Detroit",-83.05,42.33,22,18],["Toronto",-79.38,43.65,22,15],["Montreal",-73.57,45.5,18,10],
+ ["Mexico City",-99.13,19.43,40,45],["Monterrey",-100.3,25.67,22,20],["Miami",-80.19,25.76,15,10],["Minneapolis",-93.27,44.98,16,10],
+ ["Calgary",-114.07,51.05,14,8],["Vancouver",-123.12,49.28,15,8]];
+const LABELS=new Set(["Los Angeles","Phoenix","Washington","Boston","Chicago","Houston","New York","Denver","Mexico City"]);
+
+function inPoly(lon,lat,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const[xi,yi]=P[i],[xj,yj]=P[j];if((yi>lat)!==(yj>lat)&&lon<(xj-xi)*(lat-yi)/(yj-yi)+xi)c=!c;}return c;}
+function onLand(lon,lat){if(lon<LON0+0.6||lon>LON1-0.6||lat>LAT0-0.6||lat<LAT1+0.6)return false;if(!inPoly(lon,lat,LAND))return false;for(const L of LAKES)if(inPoly(lon,lat,L))return false;return true;}
+
+// ---------- canvas ----------
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+let W=0,H=0,S=1,OX=0,OY=0,TOP=0,DPR=1,landPath,lakePaths,cubaPath;
+const MAPW=(LON1-LON0)*KX, MAPH=LAT0-LAT1, TOPU=7;
+const px=lon=>OX+(lon-LON0)*KX*S, py=lat=>OY+(LAT0-lat)*S;
+const unx=x=>(x-OX)/(KX*S)+LON0, uny=y=>LAT0-(y-OY)/S;
+function poly(P){const p=new Path2D();P.forEach(([a,b],i)=>i?p.lineTo(px(a),py(b)):p.moveTo(px(a),py(b)));p.closePath();return p;}
+function resize(){
+  const r=cv.getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);
+  W=r.width;H=r.height;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  S=Math.min(W/MAPW,H/(MAPH+TOPU));TOP=TOPU*S;OX=(W-MAPW*S)/2;OY=TOP+(H-TOP-MAPH*S)/2;
+  landPath=poly(LAND);lakePaths=LAKES.map(poly);cubaPath=poly(CUBA);
+}
+new ResizeObserver(resize).observe(cv);
+
+// ---------- pollution field ----------
+const GW=141,GH=87,val=new Float32Array(GW*GH),seen=new Float32Array(GW*GH).fill(-1e9);
+const off=document.createElement("canvas");off.width=GW;off.height=GH;const octx=off.getContext("2d"),img=octx.createImageData(GW,GH);
+let windA=0.3,episodes=[];
+function hourF(h){return .3+.7*Math.exp(-(((h-15)/3)**2));}
+function field(lon,lat,t,h){
+  const wx=Math.cos(windA),wy=Math.sin(windA),hf=hourF(h);
+  let no2=3,o3=26+8*hf;
+  for(const c of CITIES){
+    const wob=Math.sin(t*.25+c[1])*.3;
+    let dx=(lon-(c[1]+wx*.6+wob))*KX,dy=lat-(c[2]+wy*.6);
+    no2+=c[3]*Math.exp(-(dx*dx+dy*dy)/1.6);
+    dx=(lon-(c[1]+wx*2.2))*KX;dy=lat-(c[2]+wy*2.2);
+    o3+=c[4]*hf*Math.exp(-(dx*dx+dy*dy)/13);
+  }
+  for(const e of episodes){const dx=(lon-e.lon)*KX,dy=lat-e.lat,g=Math.exp(-(dx*dx+dy*dy)/(2*e.r*e.r));o3+=e.o*g;no2+=e.n*g;}
+  return [no2,o3];
+}
+function danger(no2,o3){return Math.max(0,Math.min(1,Math.max(no2/45,(o3-25)/55)));}
+const VIR=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+function vir(t){t=Math.max(0,Math.min(1,t))*4;const k=Math.min(3,Math.floor(t)),f=t-k;return VIR[k].map((c,j)=>c+(VIR[k+1][j]-c)*f);}
+
+// ---------- game state ----------
+const DAY=120, SCAN=5.2, GAP=2.4; // seconds
+let G=null, best=0, sound=true, actx=null;
+try{best=+localStorage.getItem("csr-best")||0}catch(e){}
+const keys={};
+function newStation(){
+  for(let n=0;n<200;n++){
+    const c=CITIES[Math.floor(Math.random()*CITIES.length)],a=Math.random()*6.283,r=1.3+Math.random()*1.6;
+    const lon=c[1]+Math.cos(a)*r/KX,lat=c[2]+Math.sin(a)*r;
+    if(onLand(lon,lat)&&lat>19&&Math.hypot((lon-G.lon)*KX,lat-G.lat)>6)return {lon,lat,near:c[0]};
+  }
+  return {lon:-98,lat:38,near:"Kansas"};
+}
+function start(){
+  G={t:0,lon:-98,lat:38.5,tx:null,ty:null,hp:100,stations:0,scanT:0,beam:LON1,prevBeam:LON1,pings:[],trail:[],over:false,est:null,lastTime:performance.now()};
+  episodes=[];val.fill(0);seen.fill(-1e9);windA=Math.random()*6.28;
+  G.station=newStation();
+  document.getElementById("ov").hidden=true;cv.focus({preventScroll:true});
+  if(sound&&!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  requestAnimationFrame(loop);
+}
+function beep(f,d=.12){if(!sound||!actx)return;try{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.type="sine";g.gain.setValueAtTime(.12,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+d);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+d)}catch(e){}}
+function gauss(){return Math.sqrt(-2*Math.log(Math.random()+1e-9))*Math.cos(6.283*Math.random());}
+const hourOf=t=>8+10*t/DAY;
+const fmtT=h=>String(Math.floor(h)).padStart(2,"0")+":"+String(Math.floor((h%1)*60)).padStart(2,"0");
+
+function update(dt){
+  const g=G;g.t+=dt;const h=hourOf(g.t);
+  windA+=dt*.05*Math.sin(g.t*.07);
+  // episodes: smoke / stagnation plumes drifting with wind
+  if(episodes.length<1+Math.floor(g.t/45)&&Math.random()<dt*.15){
+    const c=CITIES[Math.floor(Math.random()*CITIES.length)];
+    episodes.push({lon:c[1]-Math.cos(windA)*5,lat:c[2]-Math.sin(windA)*4,r:1.6+Math.random()*1.2,o:35+Math.random()*25,n:8+Math.random()*10,life:30});
+  }
+  for(const e of episodes){e.lon+=Math.cos(windA)*dt*.35/KX;e.lat+=Math.sin(windA)*dt*.35;e.life-=dt;}
+  episodes=episodes.filter(e=>e.life>0);
+  // movement
+  let mx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),my=(keys.ArrowUp||keys.w?1:0)-(keys.ArrowDown||keys.s?1:0);
+  if(mx||my){g.tx=null;}else if(g.tx!=null){const dx=(g.tx-g.lon)*KX,dy=g.ty-g.lat,d=Math.hypot(dx,dy);if(d<.15)g.tx=null;else{mx=dx/d;my=dy/d;}}
+  const m=Math.hypot(mx,my);
+  if(m){const sp=3.4*dt;mx/=m;my/=m;
+    const nl=g.lon+mx*sp/KX,na=g.lat+my*sp;
+    if(onLand(nl,na)){g.lon=nl;g.lat=na;}else if(onLand(nl,g.lat))g.lon=nl;else if(onLand(g.lon,na))g.lat=na;else g.tx=null;
+    if(!g.trail.length||Math.hypot(g.trail[g.trail.length-1][0]-g.lon,g.trail[g.trail.length-1][1]-g.lat)>.3){g.trail.push([g.lon,g.lat]);if(g.trail.length>40)g.trail.shift();}
+  }
+  // exposure
+  const [no2,o3]=field(g.lon,g.lat,g.t,h);
+  const dmg=Math.max(0,(no2-18)/12)+Math.max(0,(o3-55)/12);
+  g.hp=dmg>0?g.hp-dmg*7*dt:Math.min(100,g.hp+2.5*dt);
+  g.dmg=dmg;
+  // station
+  if(Math.hypot((g.station.lon-g.lon)*KX,g.station.lat-g.lat)<.9){g.stations++;beep(880,.08);setTimeout(()=>beep(1320,.12),90);g.pings.push({lon:g.station.lon,lat:g.station.lat,t:g.t,c:"#fde725"});g.station=newStation();}
+  // satellite scan east -> west
+  g.scanT+=dt;const cyc=SCAN+GAP,ph=g.scanT%cyc;
+  g.prevBeam=g.beam;g.beam=ph<SCAN?LON1-(LON1-LON0)*ph/SCAN:null;
+  if(g.beam!=null){
+    const from=g.prevBeam==null||g.prevBeam<g.beam?LON1:g.prevBeam;
+    const i0=Math.max(0,Math.floor((g.beam-LON0)/.5)),i1=Math.min(GW-1,Math.ceil((from-LON0)/.5));
+    for(let i=i0;i<=i1;i++){const lon=LON0+i*.5;for(let j=0;j<GH;j++){const lat=LAT0-j*.5,k=j*GW+i;if(g.t-seen[k]<1)continue;const[a,b]=field(lon,lat,g.t,h);val[k]=danger(a,b);seen[k]=g.t;}}
+    if(from>=g.lon&&g.beam<g.lon){ // beam crossed the agent
+      const eN=Math.max(0,no2+gauss()*4.4*.7),eO=Math.max(0,o3+gauss()*8.3*.7),d=danger(eN,eO);
+      g.est={no2:eN,o3:eO,d,t:g.t,h};g.pings.push({lon:g.lon,lat:g.lat,t:g.t,c:d>.6?"#ff6b6b":d>.35?"#ffb347":"#5ec962"});
+      beep(d>.6?300:d>.35?520:760,.18);
+    }
+  }
+  g.pings=g.pings.filter(p=>g.t-p.t<1.6);
+  if(g.hp<=0){g.hp=0;end(false);}else if(g.t>=DAY)end(true);
+}
+
+function end(survived){
+  G.over=true;const score=G.stations*100+(survived?Math.round(G.hp)*2:0);
+  const isBest=score>best;if(isBest){best=score;try{localStorage.setItem("csr-best",best)}catch(e){}}
+  document.getElementById("ovc").innerHTML=`<div class="k">${survived?"Day complete · 18:00":"Overexposed at "+fmtT(hourOf(G.t))}</div>
+   <div class="big">${score}</div>
+   <h2>${survived?"You made it through the day":"Your agent breathed too much bad air"}</h2>
+   <p>${G.stations} station${G.stations===1?"":"s"} calibrated × 100${survived?` + lung health bonus ${Math.round(G.hp)*2}`:""}. ${isBest?"New best score.":"Best: "+best}</p>
+   <p>Tip: ozone peaks mid-afternoon and drifts downwind of cities. NO₂ hugs the city centers.</p>
+   <button class="btn" id="again">Play again</button>`;
+  document.getElementById("ov").hidden=false;document.getElementById("again").addEventListener("click",start);document.getElementById("again").focus();
+}
+
+// ---------- drawing ----------
+function draw(){
+  const g=G;ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);
+  // stars
+  ctx.fillStyle="#0b1129";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(230,235,255,.5)";for(let i=0;i<40;i++){const x=(i*97.3%1)*W,y=(i*53.7%1)*TOP*.9;ctx.fillRect((i*137)%W,(i*71)%Math.max(1,TOP*.9),1,1);}
+  // map
+  const mx0=px(LON0),my0=py(LAT0),mw=MAPW*S,mh=MAPH*S;
+  ctx.save();ctx.beginPath();ctx.rect(mx0,my0,mw,mh);ctx.clip();
+  ctx.fillStyle="#10204a";ctx.fillRect(mx0,my0,mw,mh);
+  ctx.strokeStyle="rgba(151,163,207,.08)";ctx.lineWidth=1;
+  for(let lo=-120;lo<=-70;lo+=10){ctx.beginPath();ctx.moveTo(px(lo),my0);ctx.lineTo(px(lo),my0+mh);ctx.stroke();}
+  for(let la=20;la<=60;la+=10){ctx.beginPath();ctx.moveTo(mx0,py(la));ctx.lineTo(mx0+mw,py(la));ctx.stroke();}
+  ctx.fillStyle="#26335e";ctx.fill(landPath);ctx.fill(cubaPath);
+  // pollution as last seen by TEMPO
+  if(g){
+    const d=img.data;
+    for(let k=0;k<GW*GH;k++){const age=g.t-seen[k],fade=age<0?0:Math.max(0,1-age/11),v=val[k],a=Math.max(0,Math.min(1,(v-.1)/.45))*.88*fade,c=vir(v);d[k*4]=c[0];d[k*4+1]=c[1];d[k*4+2]=c[2];d[k*4+3]=a*255;}
+    octx.putImageData(img,0,0);
+    ctx.save();ctx.clip(landPath);ctx.imageSmoothingEnabled=true;ctx.drawImage(off,px(LON0-.25),py(LAT0+.25),GW*.5*KX*S,GH*.5*S);ctx.restore();
+  }
+  ctx.fillStyle="#10204a";lakePaths.forEach(p=>ctx.fill(p));
+  ctx.strokeStyle="#4a5a92";ctx.lineWidth=1;ctx.stroke(landPath);lakePaths.forEach(p=>ctx.stroke(p));ctx.stroke(cubaPath);
+  ctx.setLineDash([3,3]);ctx.strokeStyle="rgba(151,163,207,.45)";
+  for(const B of BORDERS){ctx.beginPath();B.forEach(([a,b],i)=>i?ctx.lineTo(px(a),py(b)):ctx.moveTo(px(a),py(b)));ctx.stroke();}
+  ctx.setLineDash([]);
+  // cities
+  const fs=Math.max(9,Math.min(12,S*.42));ctx.font=`500 ${fs}px "IBM Plex Mono",monospace`;
+  for(const c of CITIES){ctx.fillStyle="rgba(230,235,255,.55)";ctx.fillRect(px(c[1])-1.5,py(c[2])-1.5,3,3);if(LABELS.has(c[0])&&W>360){ctx.fillStyle="rgba(230,235,255,.5)";ctx.fillText(c[0],px(c[1])+4,py(c[2])-4);}}
+  if(g){
+    // station
+    const sx=px(g.station.lon),sy=py(g.station.lat),pulse=.5+.5*Math.sin(g.t*6);
+    ctx.strokeStyle=`rgba(253,231,37,${.4+.6*pulse})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,S*.9,0,6.283);ctx.stroke();
+    ctx.fillStyle="#fde725";ctx.beginPath();ctx.moveTo(sx,sy-8);ctx.lineTo(sx+5,sy+5);ctx.lineTo(sx-5,sy+5);ctx.closePath();ctx.fill();
+    // trail
+    ctx.strokeStyle="rgba(230,235,255,.25)";ctx.lineWidth=2;ctx.beginPath();g.trail.forEach(([a,b],i)=>i?ctx.lineTo(px(a),py(b)):ctx.moveTo(px(a),py(b)));ctx.lineTo(px(g.lon),py(g.lat));ctx.stroke();
+    // destination
+    if(g.tx!=null){ctx.strokeStyle="rgba(230,235,255,.5)";ctx.lineWidth=1;const x=px(g.tx),y=py(g.ty);ctx.beginPath();ctx.moveTo(x-5,y);ctx.lineTo(x+5,y);ctx.moveTo(x,y-5);ctx.lineTo(x,y+5);ctx.stroke();}
+    // pings
+    for(const p of g.pings){const a=(g.t-p.t)/1.6;ctx.strokeStyle=p.c;ctx.globalAlpha=1-a;ctx.lineWidth=2;ctx.beginPath();ctx.arc(px(p.lon),py(p.lat),6+a*S*3,0,6.283);ctx.stroke();ctx.globalAlpha=1;}
+    // agent
+    const ax=px(g.lon),ay=py(g.lat);
+    if(g.dmg>0){ctx.fillStyle=`rgba(255,107,107,${.25+.2*Math.sin(g.t*14)})`;ctx.beginPath();ctx.arc(ax,ay,11,0,6.283);ctx.fill();}
+    ctx.fillStyle="#e6ebff";ctx.beginPath();ctx.arc(ax,ay,5.5,0,6.283);ctx.fill();ctx.strokeStyle="#0b1129";ctx.lineWidth=2;ctx.stroke();
+    // arrow to station
+    const ang=Math.atan2(-(g.station.lat-g.lat),(g.station.lon-g.lon)*KX);
+    ctx.fillStyle="rgba(253,231,37,.85)";ctx.save();ctx.translate(ax+Math.cos(ang)*14,ay+Math.sin(ang)*14);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(-3,-4);ctx.lineTo(-3,4);ctx.closePath();ctx.fill();ctx.restore();
+  }
+  ctx.restore();
+  // satellite + beam
+  const satX=px(-100),satY=TOP*.42;
+  if(g&&g.beam!=null){
+    const bx=px(g.beam);
+    ctx.fillStyle="rgba(253,231,37,.08)";ctx.beginPath();ctx.moveTo(satX-3,satY+8);ctx.lineTo(satX+3,satY+8);ctx.lineTo(bx+4,my0+mh);ctx.lineTo(bx-4,my0);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="rgba(253,231,37,.35)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(satX,satY+8);ctx.lineTo(bx,my0);ctx.stroke();
+    const grd=ctx.createLinearGradient(bx-10,0,bx+10,0);grd.addColorStop(0,"rgba(253,231,37,0)");grd.addColorStop(.5,"rgba(253,231,37,.7)");grd.addColorStop(1,"rgba(253,231,37,0)");
+    ctx.fillStyle=grd;ctx.fillRect(bx-10,my0,20,mh);
+  }
+  const u=Math.max(.7,S/24);ctx.save();ctx.translate(satX,satY);ctx.scale(u,u);
+  ctx.fillStyle="#3b528b";ctx.strokeStyle="#97a3cf";ctx.lineWidth=1;ctx.fillRect(-26,-5,15,10);ctx.strokeRect(-26,-5,15,10);ctx.fillRect(11,-5,15,10);ctx.strokeRect(11,-5,15,10);
+  ctx.fillStyle="#e6ebff";ctx.fillRect(-8,-8,16,16);ctx.fillStyle="#fde725";ctx.fillRect(-2,8,4,4);ctx.restore();
+  ctx.fillStyle="#97a3cf";ctx.font=`600 ${Math.max(10,fs)}px "IBM Plex Mono",monospace`;ctx.fillText("TEMPO",satX+30*u,satY+4);
+  // wind arrow
+  if(g){const wx=mx0+mw-30,wy=my0+mh-30;ctx.strokeStyle="#97a3cf";ctx.lineWidth=2;ctx.beginPath();ctx.arc(wx,wy,16,0,6.283);ctx.globalAlpha=.4;ctx.stroke();ctx.globalAlpha=1;
+    ctx.save();ctx.translate(wx,wy);ctx.rotate(-windA);ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.lineTo(5,-5);ctx.moveTo(11,0);ctx.lineTo(5,5);ctx.stroke();ctx.restore();}
+}
+
+const $=id=>document.getElementById(id);
+const dirs=["E","NE","N","NW","W","SW","S","SE"];
+function hud(){
+  const g=G;$("clock").textContent=fmtT(hourOf(g.t));$("score").textContent=g.stations;
+  $("hp").textContent=Math.round(g.hp)+"%";const b=$("hpbar");b.style.width=g.hp+"%";b.style.background=g.hp>60?"var(--vg)":g.hp>30?"var(--warn)":"var(--bad)";
+  let a=((windA%6.283)+6.283)%6.283;$("wind").textContent="→ "+dirs[Math.round(a/(Math.PI/4))%8];
+  const chip=$("chip"),txt=$("sigtext");
+  if(g.est){const e=g.est,ago=Math.round(g.t-e.t);
+    chip.className="chip "+(e.d>.6?"bad":e.d>.35?"mod":"clean");chip.textContent=e.d>.6?"Unhealthy":e.d>.35?"Moderate":"Clean";
+    txt.textContent=`TEMPO ${fmtT(e.h)} · NO₂ ${e.no2.toFixed(0)} ± 4.4 ppb · O₃ ${e.o3.toFixed(0)} ± 8.3 ppb · ${ago}s ago${e.d>.6?" · move to cleaner air":""}`;}
+}
+
+function loop(now){
+  if(!G||G.over){if(G)draw();return;}
+  const dt=Math.min(.05,(now-G.lastTime)/1000);G.lastTime=now;
+  update(dt);if(!G.over){draw();hud();requestAnimationFrame(loop);}else{draw();hud();}
+}
+
+// ---------- input ----------
+function setTarget(e){if(!G||G.over)return;const r=cv.getBoundingClientRect();G.tx=unx(e.clientX-r.left);G.ty=uny(e.clientY-r.top);}
+let down=false;
+cv.addEventListener("pointerdown",e=>{down=true;cv.setPointerCapture(e.pointerId);setTarget(e);});
+cv.addEventListener("pointermove",e=>{if(down)setTarget(e);});
+cv.addEventListener("pointerup",()=>down=false);cv.addEventListener("pointercancel",()=>down=false);
+const KMAP={ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1,w:1,a:1,s:1,d:1,W:1,A:1,S:1,D:1};
+addEventListener("keydown",e=>{if(KMAP[e.key]&&G&&!G.over){keys[e.key.length===1?e.key.toLowerCase():e.key]=true;e.preventDefault();}});
+addEventListener("keyup",e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=false;});
+$("start").addEventListener("click",start);
+$("mute").addEventListener("click",e=>{sound=!sound;e.target.textContent=sound?"Sound on":"Sound off";e.target.setAttribute("aria-pressed",String(!sound));if(sound&&!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(err){}}});
+
+// idle preview
+resize();
+G=null;(function idle(){if(G)return;draw();requestAnimationFrame(idle);})();
+})();
+</script>
+
+</body></html>

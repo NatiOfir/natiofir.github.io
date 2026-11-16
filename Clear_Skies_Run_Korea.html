@@ -1,0 +1,342 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Clear Skies Run Korea</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same sibling design as the TEMPO edition. Game stage (map + GEMS above it), HUD strip below. Single dark night-orbit look, viridis for pollution. */
+:root{
+  --space:#0b1129; --panel:#141d42; --line:#2a3768; --ink:#e6ebff; --dim:#97a3cf;
+  --vy:#fde725; --vg:#5ec962; --bad:#ff6b6b; --warn:#ffb347;
+  --display:"Chakra Petch",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--space);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.kick{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--vy);margin:0 0 6px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,5.5vw,40px);line-height:1;margin:0}
+h1 span{color:var(--vy)}
+.sub{color:var(--dim);margin:6px 0 0;font-size:14px;max-width:62ch}
+.mute{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer}
+.stage{position:relative;width:100%;max-width:min(100%,calc(78vh * 1.06));margin:0 auto;aspect-ratio:1.06;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--space)}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+canvas:focus-visible,button:focus-visible{outline:2px solid var(--vy);outline-offset:2px}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,17,41,.84);padding:20px;overflow:auto}
+.ov{max-width:450px;display:flex;flex-direction:column;gap:12px}
+.ov h2{font-family:var(--display);font-size:clamp(22px,5vw,32px);margin:0;line-height:1.1;text-wrap:balance}
+.ov p{margin:0;color:var(--dim)}
+.ov ul{margin:0;padding-left:18px;color:var(--ink);display:grid;gap:4px;font-size:14px}
+.btn{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.04em;background:var(--vy);color:#1a1530;border:0;border-radius:4px;padding:12px 22px;cursor:pointer;align-self:flex-start}
+.big{font-family:var(--display);font-size:52px;color:var(--vy);line-height:1}
+.hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.hud{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+.k{font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.v{font:500 22px var(--mono);font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note{font:12px var(--mono);color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meter{height:8px;background:var(--space);border-radius:4px;margin-top:8px;overflow:hidden}
+.meter i{display:block;height:100%;width:100%;background:var(--vg);transition:width .2s}
+.signal{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font:13px var(--mono);color:var(--dim);display:flex;gap:10px;align-items:center;min-height:44px}
+.chip{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;border-radius:3px;padding:3px 7px;flex:none;background:var(--line);color:var(--ink)}
+.chip.clean{background:rgba(94,201,98,.2);color:var(--vg)} .chip.mod{background:rgba(255,179,71,.18);color:var(--warn)} .chip.bad{background:rgba(255,107,107,.18);color:var(--bad)}
+.signal span:last-child{min-width:0}
+.help{color:var(--dim);font-size:13px;margin:0}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="kick">GEMS edition · 128.2°E</p>
+      <h1>Clear Skies <span>Run</span></h1>
+      <p class="sub">Steer your field agent across South Korea to reach AirKorea monitoring stations. Pollution is invisible until the GEMS satellite scans over it, and westerly winds keep pushing haze across the Yellow Sea. Keep your lungs clean until 18:00 KST.</p>
+    </div>
+    <button class="mute" id="mute" aria-pressed="false">Sound on</button>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" tabindex="0" aria-label="Game map of the Korean Peninsula"></canvas>
+    <div class="overlay" id="ov">
+      <div class="ov" id="ovc">
+        <h2>Mission: calibrate the AirKorea network</h2>
+        <ul>
+          <li>Tap, click or drag to send your agent somewhere. Arrow keys and WASD work too.</li>
+          <li>Reach the flashing <b style="color:var(--vy)">stations</b> for 100 points each. You stay south of the DMZ.</li>
+          <li>GEMS sweeps east to west from its orbit over Korea. Colors show what it saw, then fade.</li>
+          <li>When the beam passes you, it pings a surface estimate with its error bar.</li>
+          <li>Haze plumes ride the westerlies in over the Yellow Sea. Watch the wind.</li>
+          <li>Ozone builds through the afternoon, downwind of Seoul, Ulsan and Busan.</li>
+        </ul>
+        <button class="btn" id="start">Start the day</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="tile"><div class="k">Local time (KST)</div><div class="v" id="clock">08:00</div></div>
+    <div class="tile"><div class="k">Stations</div><div class="v" id="score">0</div><div class="note" id="next">Next: —</div></div>
+    <div class="tile"><div class="k">Lung health</div><div class="v" id="hp">100%</div><div class="meter"><i id="hpbar"></i></div></div>
+    <div class="tile"><div class="k">Wind blowing</div><div class="v" id="wind">—</div></div>
+  </div>
+  <div class="signal" id="signal"><span class="chip" id="chip">No scan</span><span id="sigtext">Waiting for the first GEMS scan.</span></div>
+  <p class="help">Error bars reuse TempoNet's North American test error (±8.3 ppb O₃, ±4.4 ppb NO₂) as a stand-in; no model has been trained on GEMS yet. Pollution fields are simulated for the game.</p>
+</div>
+
+<script>
+(()=>{
+// ---------- geography (lon, lat) ----------
+const LON0=121, LON1=132, LAT0=39.5, LAT1=32.5, KX=Math.cos(36*Math.PI/180), CELL=0.08, GEMS_LON=128.2;
+const SOUTH=[[126.15,37.75],[126.55,37.78],[126.68,37.95],[127.1,38.25],[127.6,38.32],[128.1,38.3],[128.37,38.6],[128.6,38.2],[128.9,37.75],[129.2,37.4],[129.38,36.9],[129.45,36.4],[129.57,36.05],[129.45,35.7],[129.4,35.45],[129.25,35.25],[129.1,35.1],[128.75,35.05],[128.45,34.85],[128.1,34.9],[127.75,34.7],[127.5,34.6],[127.3,34.45],[126.9,34.4],[126.5,34.3],[126.3,34.6],[126.4,34.95],[126.35,35.3],[126.6,35.7],[126.65,36.0],[126.5,36.3],[126.15,36.65],[126.4,36.95],[126.75,37.0],[126.65,37.3],[126.55,37.5]];
+const NORTH=[[126.15,37.75],[125.7,37.75],[125.3,37.7],[124.8,37.9],[124.75,38.1],[125.0,38.6],[125.3,39.0],[125.1,39.4],[124.7,39.6],[124.3,39.9],[124.3,41],[129.5,41],[129.7,40.8],[129.2,40.5],[128.6,40.0],[127.6,39.7],[127.4,39.3],[128.0,38.9],[128.37,38.6],[128.1,38.3],[127.6,38.32],[127.1,38.25],[126.68,37.95],[126.55,37.78]];
+const OTHER=[ // China (Liaoning, Shandong), Japan, islands
+ [[117,42],[124.3,42],[124.3,39.9],[123.5,39.7],[122.2,39.3],[121.7,38.75],[121.2,38.8],[121.0,39.5],[120,40.3],[117,39]],
+ [[117,38.2],[118.5,37.8],[119,37.3],[120.3,37.6],[121.5,37.5],[122.6,37.4],[122.5,36.9],[121.0,36.5],[120.3,36.0],[119.5,35.4],[119.2,34.7],[120.3,34.0],[120.9,32.5],[117,31]],
+ [[129.7,33.6],[130.4,33.9],[131.0,33.95],[131.6,33.6],[131.7,32.5],[131.4,31.4],[130.7,31.0],[130.2,31.3],[130.3,32.0],[129.8,32.7],[129.6,33.2]],
+ [[130.9,34.0],[131.4,34.4],[132.2,35.0],[133,35.5],[134,35.6],[134,34],[132.5,34.2],[131.8,33.95]],
+ [[129.2,34.15],[129.35,34.7],[129.48,34.6],[129.35,34.1]],
+ [[126.15,33.3],[126.4,33.5],[126.9,33.55],[126.95,33.4],[126.6,33.2],[126.2,33.2]],
+ [[130.82,37.47],[130.9,37.53],[130.92,37.47],[130.86,37.44]]];
+const DMZ=[[126.15,37.75],[126.55,37.78],[126.68,37.95],[127.1,38.25],[127.6,38.32],[128.1,38.3],[128.37,38.6]];
+// name, lon, lat, NO2 peak, O3 peak (ppb above background)
+const CITIES=[
+ ["Seoul",126.98,37.57,38,30],["Incheon",126.70,37.46,26,24],["Suwon",127.03,37.26,20,26],["Dangjin",126.63,36.89,22,20],
+ ["Cheongju",127.49,36.64,15,18],["Daejeon",127.38,36.35,18,22],["Chuncheon",127.73,37.88,8,10],["Gangneung",128.88,37.75,8,8],
+ ["Pohang",129.36,36.02,18,15],["Daegu",128.6,35.87,24,28],["Ulsan",129.31,35.54,26,24],["Busan",129.08,35.18,28,24],
+ ["Jeonju",127.15,35.82,12,15],["Gwangju",126.85,35.16,18,20],["Yeosu",127.7,34.76,20,18],["Mokpo",126.39,34.81,8,10]];
+const FOREIGN=[["Pyongyang",125.75,39.02,14,10],["Dalian",121.6,38.9,24,18],["Weihai",122.1,37.5,12,12]];
+const LABELS=new Set(["Seoul","Busan","Daegu","Daejeon","Gwangju","Ulsan","Pyongyang"]);
+const CENTER=[127.7,36.3];
+
+function inPoly(lon,lat,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const[xi,yi]=P[i],[xj,yj]=P[j];if((yi>lat)!==(yj>lat)&&lon<(xj-xi)*(lat-yi)/(yj-yi)+xi)c=!c;}return c;}
+const onLand=(lon,lat)=>inPoly(lon,lat,SOUTH);
+
+// ---------- canvas ----------
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+let W=0,H=0,S=1,OX=0,OY=0,TOP=0,DPR=1,southPath,northPath,otherPaths;
+const MAPW=(LON1-LON0)*KX, MAPH=LAT0-LAT1, TOPU=1.3;
+const px=lon=>OX+(lon-LON0)*KX*S, py=lat=>OY+(LAT0-lat)*S;
+const unx=x=>(x-OX)/(KX*S)+LON0, uny=y=>LAT0-(y-OY)/S;
+function poly(P){const p=new Path2D();P.forEach(([a,b],i)=>i?p.lineTo(px(a),py(b)):p.moveTo(px(a),py(b)));p.closePath();return p;}
+function resize(){
+  const r=cv.getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);
+  W=r.width;H=r.height;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  S=Math.min(W/MAPW,H/(MAPH+TOPU));TOP=TOPU*S;OX=(W-MAPW*S)/2;OY=TOP+(H-TOP-MAPH*S)/2;
+  southPath=poly(SOUTH);northPath=poly(NORTH);otherPaths=OTHER.map(poly);
+}
+new ResizeObserver(resize).observe(cv);
+
+// ---------- pollution field ----------
+const GW=Math.round((LON1-LON0)/CELL)+1,GH=Math.round((LAT0-LAT1)/CELL)+1;
+const val=new Float32Array(GW*GH),seen=new Float32Array(GW*GH).fill(-1e9);
+const off=document.createElement("canvas");off.width=GW;off.height=GH;const octx=off.getContext("2d"),img=octx.createImageData(GW,GH);
+let windA=0,windBase=0,windPh=0,episodes=[];
+const hourF=h=>.3+.7*Math.exp(-(((h-15)/3)**2));
+function field(lon,lat,t,h){
+  const wx=Math.cos(windA),wy=Math.sin(windA),hf=hourF(h);
+  let no2=3,o3=30+8*hf;
+  for(const L of [CITIES,FOREIGN])for(const c of L){
+    const wob=Math.sin(t*.25+c[1])*.05;
+    let dx=(lon-(c[1]+wx*.1+wob))*KX,dy=lat-(c[2]+wy*.1);
+    no2+=c[3]*Math.exp(-(dx*dx+dy*dy)/.045);
+    dx=(lon-(c[1]+wx*.35))*KX;dy=lat-(c[2]+wy*.35);
+    o3+=c[4]*hf*Math.exp(-(dx*dx+dy*dy)/.35);
+  }
+  for(const e of episodes){const dx=(lon-e.lon)*KX,dy=lat-e.lat,g=Math.exp(-(dx*dx+dy*dy)/(2*e.r*e.r));o3+=e.o*g;no2+=e.n*g;}
+  return [no2,o3];
+}
+const danger=(no2,o3)=>Math.max(0,Math.min(1,Math.max(no2/45,(o3-25)/55)));
+const VIR=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+function vir(t){t=Math.max(0,Math.min(1,t))*4;const k=Math.min(3,Math.floor(t)),f=t-k;return VIR[k].map((c,j)=>c+(VIR[k+1][j]-c)*f);}
+
+// ---------- game state ----------
+const DAY=120, SCAN=5.2, GAP=2.4, SPEED=.42, REACH=.12;
+let G=null, best=0, sound=true, actx=null;
+try{best=+localStorage.getItem("csr-kr-best")||0}catch(e){}
+const keys={};
+function newStation(){
+  for(let n=0;n<300;n++){
+    const c=CITIES[Math.floor(Math.random()*CITIES.length)],a=Math.random()*6.283,r=.12+Math.random()*.3;
+    const lon=c[1]+Math.cos(a)*r/KX,lat=c[2]+Math.sin(a)*r;
+    if(onLand(lon,lat)&&Math.hypot((lon-G.lon)*KX,lat-G.lat)>1)return {lon,lat,near:c[0]};
+  }
+  return {lon:127.9,lat:36.6,near:"Chungcheong"};
+}
+function start(){
+  G={t:0,lon:127.7,lat:36.5,tx:null,ty:null,hp:100,stations:0,scanT:0,beam:LON1,prevBeam:LON1,pings:[],trail:[],over:false,est:null,alert:null,lastTime:performance.now()};
+  episodes=[];val.fill(0);seen.fill(-1e9);
+  windBase=(Math.random()-.5)*1.1;windPh=Math.random()*6.28;windA=windBase;
+  G.station=newStation();
+  document.getElementById("ov").hidden=true;cv.focus({preventScroll:true});
+  if(sound&&!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  requestAnimationFrame(loop);
+}
+function beep(f,d=.12){if(!sound||!actx)return;try{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.type="sine";g.gain.setValueAtTime(.12,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+d);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+d)}catch(e){}}
+const gauss=()=>Math.sqrt(-2*Math.log(Math.random()+1e-9))*Math.cos(6.283*Math.random());
+const hourOf=t=>8+10*t/DAY;
+const fmtT=h=>String(Math.floor(h)).padStart(2,"0")+":"+String(Math.floor((h%1)*60)).padStart(2,"0");
+
+function update(dt){
+  const g=G;g.t+=dt;const h=hourOf(g.t);
+  windA=windBase+.6*Math.sin(g.t*.045+windPh); // prevailing westerlies that wander
+  // transboundary haze plumes arrive from upwind and cross the peninsula
+  if(episodes.length<1+Math.floor(g.t/40)&&Math.random()<dt*.12){
+    const lat=CENTER[1]-Math.sin(windA)*2.6+(Math.random()-.5)*2;
+    episodes.push({lon:CENTER[0]-Math.cos(windA)*4/KX,lat,r:.35+Math.random()*.3,o:30+Math.random()*22,n:8+Math.random()*9,life:48});
+    g.alert={text:Math.cos(windA)>0?"Haze plume crossing the Yellow Sea":"Haze plume moving in",t:g.t};beep(220,.25);
+  }
+  for(const e of episodes){e.lon+=Math.cos(windA)*dt*.14/KX;e.lat+=Math.sin(windA)*dt*.14;e.life-=dt;}
+  episodes=episodes.filter(e=>e.life>0);
+  // movement
+  let mx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),my=(keys.ArrowUp||keys.w?1:0)-(keys.ArrowDown||keys.s?1:0);
+  if(mx||my){g.tx=null;}else if(g.tx!=null){const dx=(g.tx-g.lon)*KX,dy=g.ty-g.lat,d=Math.hypot(dx,dy);if(d<.02)g.tx=null;else{mx=dx/d;my=dy/d;}}
+  const m=Math.hypot(mx,my);
+  if(m){const sp=SPEED*dt;mx/=m;my/=m;
+    const nl=g.lon+mx*sp/KX,na=g.lat+my*sp;
+    if(onLand(nl,na)){g.lon=nl;g.lat=na;}else if(onLand(nl,g.lat))g.lon=nl;else if(onLand(g.lon,na))g.lat=na;else g.tx=null;
+    const last=g.trail[g.trail.length-1];
+    if(!last||Math.hypot(last[0]-g.lon,last[1]-g.lat)>.04){g.trail.push([g.lon,g.lat]);if(g.trail.length>40)g.trail.shift();}
+  }
+  // exposure
+  const [no2,o3]=field(g.lon,g.lat,g.t,h);
+  const dmg=Math.max(0,(no2-18)/12)+Math.max(0,(o3-55)/12);
+  g.hp=dmg>0?g.hp-dmg*7*dt:Math.min(100,g.hp+2.5*dt);
+  g.dmg=dmg;
+  // station
+  if(Math.hypot((g.station.lon-g.lon)*KX,g.station.lat-g.lat)<REACH){g.stations++;beep(880,.08);setTimeout(()=>beep(1320,.12),90);g.pings.push({lon:g.station.lon,lat:g.station.lat,t:g.t,c:"#fde725"});g.station=newStation();}
+  // GEMS scan east -> west
+  g.scanT+=dt;const ph=g.scanT%(SCAN+GAP);
+  g.prevBeam=g.beam;g.beam=ph<SCAN?LON1-(LON1-LON0)*ph/SCAN:null;
+  if(g.beam!=null){
+    const from=g.prevBeam==null||g.prevBeam<g.beam?LON1:g.prevBeam;
+    const i0=Math.max(0,Math.floor((g.beam-LON0)/CELL)),i1=Math.min(GW-1,Math.ceil((from-LON0)/CELL));
+    for(let i=i0;i<=i1;i++){const lon=LON0+i*CELL;for(let j=0;j<GH;j++){const lat=LAT0-j*CELL,k=j*GW+i;if(g.t-seen[k]<1)continue;const[a,b]=field(lon,lat,g.t,h);val[k]=danger(a,b);seen[k]=g.t;}}
+    if(from>=g.lon&&g.beam<g.lon){
+      const eN=Math.max(0,no2+gauss()*4.4*.7),eO=Math.max(0,o3+gauss()*8.3*.7),d=danger(eN,eO);
+      g.est={no2:eN,o3:eO,d,t:g.t,h};g.pings.push({lon:g.lon,lat:g.lat,t:g.t,c:d>.6?"#ff6b6b":d>.35?"#ffb347":"#5ec962"});
+      beep(d>.6?300:d>.35?520:760,.18);
+    }
+  }
+  g.pings=g.pings.filter(p=>g.t-p.t<1.6);
+  if(g.hp<=0){g.hp=0;end(false);}else if(g.t>=DAY)end(true);
+}
+
+function end(survived){
+  G.over=true;const score=G.stations*100+(survived?Math.round(G.hp)*2:0);
+  const isBest=score>best;if(isBest){best=score;try{localStorage.setItem("csr-kr-best",best)}catch(e){}}
+  document.getElementById("ovc").innerHTML=`<div class="k">${survived?"Day complete · 18:00 KST":"Overexposed at "+fmtT(hourOf(G.t))+" KST"}</div>
+   <div class="big">${score}</div>
+   <h2>${survived?"You made it through the day":"Your agent breathed too much bad air"}</h2>
+   <p>${G.stations} station${G.stations===1?"":"s"} calibrated × 100${survived?` + lung health bonus ${Math.round(G.hp)*2}`:""}. ${isBest?"New best score.":"Best: "+best}</p>
+   <p>Tip: plumes from the west hit the Seoul–Incheon coast first. The southeast industrial belt (Ulsan, Pohang, Busan) builds ozone by mid-afternoon.</p>
+   <button class="btn" id="again">Play again</button>`;
+  document.getElementById("ov").hidden=false;const b=document.getElementById("again");b.addEventListener("click",start);b.focus();
+}
+
+// ---------- drawing ----------
+function draw(){
+  const g=G;ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle="#0b1129";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(230,235,255,.45)";for(let i=0;i<40;i++)ctx.fillRect((i*137.7)%W,(i*71.3)%Math.max(1,TOP*.85),1,1);
+  const mx0=px(LON0),my0=py(LAT0),mw=MAPW*S,mh=MAPH*S;
+  ctx.save();ctx.beginPath();ctx.rect(mx0,my0,mw,mh);ctx.clip();
+  ctx.fillStyle="#10204a";ctx.fillRect(mx0,my0,mw,mh);
+  ctx.strokeStyle="rgba(151,163,207,.08)";ctx.lineWidth=1;
+  for(let lo=122;lo<=131;lo++){ctx.beginPath();ctx.moveTo(px(lo),my0);ctx.lineTo(px(lo),my0+mh);ctx.stroke();}
+  for(let la=33;la<=39;la++){ctx.beginPath();ctx.moveTo(mx0,py(la));ctx.lineTo(mx0+mw,py(la));ctx.stroke();}
+  ctx.fillStyle="#1b2548";otherPaths.forEach(p=>ctx.fill(p));ctx.fill(northPath);
+  ctx.fillStyle="#26335e";ctx.fill(southPath);
+  // sea labels
+  const fs=Math.max(9,Math.min(12,S*.075));
+  ctx.font=`italic 500 ${fs}px "IBM Plex Sans",sans-serif`;ctx.fillStyle="rgba(151,163,207,.4)";
+  ctx.fillText("Yellow Sea",px(123.4),py(36.0));ctx.fillText("East Sea",px(130.2),py(37.0));ctx.fillText("Korea Strait",px(127.9),py(33.9));
+  ctx.font=`600 ${fs}px "IBM Plex Mono",monospace`;ctx.fillStyle="rgba(151,163,207,.35)";
+  ctx.fillText("CHINA",px(121.15),py(37.05));ctx.fillText("JAPAN",px(130.6),py(33.1));ctx.fillText("DPRK",px(126.3),py(39.25));
+  // pollution as last seen by GEMS (over land and sea)
+  if(g){
+    const d=img.data;
+    for(let k=0;k<GW*GH;k++){const age=g.t-seen[k],fade=age<0?0:Math.max(0,1-age/11),v=val[k],a=Math.max(0,Math.min(1,(v-.1)/.45))*.85*fade,c=vir(v);d[k*4]=c[0];d[k*4+1]=c[1];d[k*4+2]=c[2];d[k*4+3]=a*255;}
+    octx.putImageData(img,0,0);
+    ctx.imageSmoothingEnabled=true;ctx.drawImage(off,px(LON0-CELL/2),py(LAT0+CELL/2),GW*CELL*KX*S,GH*CELL*S);
+  }
+  ctx.strokeStyle="#4a5a92";ctx.lineWidth=1;otherPaths.forEach(p=>ctx.stroke(p));ctx.stroke(northPath);
+  ctx.strokeStyle="#6f80bd";ctx.lineWidth=1.3;ctx.stroke(southPath);
+  ctx.setLineDash([4,3]);ctx.strokeStyle="rgba(255,107,107,.7)";ctx.lineWidth=1.5;
+  ctx.beginPath();DMZ.forEach(([a,b],i)=>i?ctx.lineTo(px(a),py(b)):ctx.moveTo(px(a),py(b)));ctx.stroke();ctx.setLineDash([]);
+  // cities
+  ctx.font=`500 ${fs}px "IBM Plex Mono",monospace`;
+  for(const c of [...CITIES,...FOREIGN]){ctx.fillStyle="rgba(230,235,255,.6)";ctx.fillRect(px(c[1])-1.5,py(c[2])-1.5,3,3);if(LABELS.has(c[0])&&W>340){ctx.fillStyle="rgba(230,235,255,.55)";ctx.fillText(c[0],px(c[1])+4,py(c[2])-4);}}
+  if(g){
+    const sx=px(g.station.lon),sy=py(g.station.lat),pulse=.5+.5*Math.sin(g.t*6);
+    ctx.strokeStyle=`rgba(253,231,37,${.4+.6*pulse})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,Math.max(10,REACH*S),0,6.283);ctx.stroke();
+    ctx.fillStyle="#fde725";ctx.beginPath();ctx.moveTo(sx,sy-8);ctx.lineTo(sx+5,sy+5);ctx.lineTo(sx-5,sy+5);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="rgba(230,235,255,.25)";ctx.lineWidth=2;ctx.beginPath();g.trail.forEach(([a,b],i)=>i?ctx.lineTo(px(a),py(b)):ctx.moveTo(px(a),py(b)));ctx.lineTo(px(g.lon),py(g.lat));ctx.stroke();
+    if(g.tx!=null){ctx.strokeStyle="rgba(230,235,255,.5)";ctx.lineWidth=1;const x=px(g.tx),y=py(g.ty);ctx.beginPath();ctx.moveTo(x-5,y);ctx.lineTo(x+5,y);ctx.moveTo(x,y-5);ctx.lineTo(x,y+5);ctx.stroke();}
+    for(const p of g.pings){const a=(g.t-p.t)/1.6;ctx.strokeStyle=p.c;ctx.globalAlpha=1-a;ctx.lineWidth=2;ctx.beginPath();ctx.arc(px(p.lon),py(p.lat),6+a*S*.45,0,6.283);ctx.stroke();ctx.globalAlpha=1;}
+    const ax=px(g.lon),ay=py(g.lat);
+    if(g.dmg>0){ctx.fillStyle=`rgba(255,107,107,${.25+.2*Math.sin(g.t*14)})`;ctx.beginPath();ctx.arc(ax,ay,11,0,6.283);ctx.fill();}
+    ctx.fillStyle="#e6ebff";ctx.beginPath();ctx.arc(ax,ay,5.5,0,6.283);ctx.fill();ctx.strokeStyle="#0b1129";ctx.lineWidth=2;ctx.stroke();
+    const ang=Math.atan2(-(g.station.lat-g.lat),(g.station.lon-g.lon)*KX);
+    ctx.fillStyle="rgba(253,231,37,.85)";ctx.save();ctx.translate(ax+Math.cos(ang)*14,ay+Math.sin(ang)*14);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(-3,-4);ctx.lineTo(-3,4);ctx.closePath();ctx.fill();ctx.restore();
+    // haze alert
+    if(g.alert&&g.t-g.alert.t<6){const a=Math.min(1,(6-(g.t-g.alert.t))/1.5);ctx.globalAlpha=a;ctx.font=`600 ${Math.max(11,fs+1)}px "IBM Plex Mono",monospace`;
+      const tw=ctx.measureText(g.alert.text).width;ctx.fillStyle="rgba(11,17,41,.85)";ctx.fillRect(mx0+10,my0+mh-34,tw+20,24);
+      ctx.fillStyle="#ffb347";ctx.fillText(g.alert.text,mx0+20,my0+mh-17);ctx.globalAlpha=1;}
+  }
+  ctx.restore();
+  // GEMS + beam
+  const satX=px(GEMS_LON),satY=TOP*.45;
+  if(g&&g.beam!=null){
+    const bx=px(g.beam);
+    ctx.fillStyle="rgba(253,231,37,.08)";ctx.beginPath();ctx.moveTo(satX-3,satY+8);ctx.lineTo(satX+3,satY+8);ctx.lineTo(bx+4,my0+mh);ctx.lineTo(bx-4,my0);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="rgba(253,231,37,.35)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(satX,satY+8);ctx.lineTo(bx,my0);ctx.stroke();
+    const grd=ctx.createLinearGradient(bx-10,0,bx+10,0);grd.addColorStop(0,"rgba(253,231,37,0)");grd.addColorStop(.5,"rgba(253,231,37,.7)");grd.addColorStop(1,"rgba(253,231,37,0)");
+    ctx.fillStyle=grd;ctx.fillRect(bx-10,my0,20,mh);
+  }
+  const u=Math.max(.7,Math.min(1.4,S/60));ctx.save();ctx.translate(satX,satY);ctx.scale(u,u);
+  ctx.fillStyle="#3b528b";ctx.strokeStyle="#97a3cf";ctx.lineWidth=1;ctx.fillRect(-26,-5,15,10);ctx.strokeRect(-26,-5,15,10);ctx.fillRect(11,-5,15,10);ctx.strokeRect(11,-5,15,10);
+  ctx.fillStyle="#e6ebff";ctx.fillRect(-8,-8,16,16);ctx.fillStyle="#fde725";ctx.fillRect(-2,8,4,4);ctx.restore();
+  ctx.fillStyle="#97a3cf";ctx.font=`600 ${Math.max(10,fs)}px "IBM Plex Mono",monospace`;ctx.fillText("GEMS · 128.2°E",satX+30*u,satY+4);
+  // wind dial
+  if(g){const wx=mx0+mw-30,wy=my0+mh-30;ctx.strokeStyle="#97a3cf";ctx.lineWidth=2;ctx.globalAlpha=.4;ctx.beginPath();ctx.arc(wx,wy,16,0,6.283);ctx.stroke();ctx.globalAlpha=1;
+    ctx.save();ctx.translate(wx,wy);ctx.rotate(-windA);ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.lineTo(5,-5);ctx.moveTo(11,0);ctx.lineTo(5,5);ctx.stroke();ctx.restore();}
+}
+
+const $=id=>document.getElementById(id);
+const dirs=["E","NE","N","NW","W","SW","S","SE"];
+function hud(){
+  const g=G;$("clock").textContent=fmtT(hourOf(g.t));$("score").textContent=g.stations;$("next").textContent="Next: near "+g.station.near;
+  $("hp").textContent=Math.round(g.hp)+"%";const b=$("hpbar");b.style.width=g.hp+"%";b.style.background=g.hp>60?"var(--vg)":g.hp>30?"var(--warn)":"var(--bad)";
+  const a=((windA%6.283)+6.283)%6.283;$("wind").textContent="→ "+dirs[Math.round(a/(Math.PI/4))%8];
+  if(g.est){const e=g.est,ago=Math.round(g.t-e.t),chip=$("chip");
+    chip.className="chip "+(e.d>.6?"bad":e.d>.35?"mod":"clean");chip.textContent=e.d>.6?"Unhealthy":e.d>.35?"Moderate":"Clean";
+    $("sigtext").textContent=`GEMS ${fmtT(e.h)} · NO₂ ${e.no2.toFixed(0)} ± 4.4 ppb · O₃ ${e.o3.toFixed(0)} ± 8.3 ppb · ${ago}s ago${e.d>.6?" · move to cleaner air":""}`;}
+}
+
+function loop(now){
+  if(!G||G.over)return;
+  const dt=Math.min(.05,(now-G.lastTime)/1000);G.lastTime=now;
+  update(dt);draw();hud();if(!G.over)requestAnimationFrame(loop);
+}
+
+// ---------- input ----------
+function setTarget(e){if(!G||G.over)return;const r=cv.getBoundingClientRect();G.tx=unx(e.clientX-r.left);G.ty=uny(e.clientY-r.top);}
+let down=false;
+cv.addEventListener("pointerdown",e=>{down=true;cv.setPointerCapture(e.pointerId);setTarget(e);});
+cv.addEventListener("pointermove",e=>{if(down)setTarget(e);});
+cv.addEventListener("pointerup",()=>down=false);cv.addEventListener("pointercancel",()=>down=false);
+const KMAP={ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1,w:1,a:1,s:1,d:1,W:1,A:1,S:1,D:1};
+const norm=k=>k.length===1?k.toLowerCase():k;
+addEventListener("keydown",e=>{if(KMAP[e.key]&&G&&!G.over){keys[norm(e.key)]=true;e.preventDefault();}});
+addEventListener("keyup",e=>{keys[norm(e.key)]=false;});
+$("start").addEventListener("click",start);
+$("mute").addEventListener("click",e=>{sound=!sound;e.target.textContent=sound?"Sound on":"Sound off";e.target.setAttribute("aria-pressed",String(!sound));if(sound&&!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(err){}}});
+
+resize();
+(function idle(){if(G)return;draw();requestAnimationFrame(idle);})();
+})();
+</script>
+
+</body></html>
