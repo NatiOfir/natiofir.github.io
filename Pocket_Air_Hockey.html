@@ -142,15 +142,16 @@ canvas { display: block; width: 100%; height: 100%; border-radius: 16px; backgro
 
   function faceoff(toPlayer) {
     pk.x = W / 2; pk.y = toPlayer ? H * 0.68 : H * 0.32; pk.vx = pk.vy = 0;
-    s.wait = 0.6;
+    s.wait = 0.6; stallT = 0; retreatT = 0;
   }
+  let stallT = 0, retreatT = 0;
   function start() {
     s.you = 0; s.cpu = 0; updScore();
     home(); s.running = true; s.paused = false;
     ov.hidden = true; pauseBtn.textContent = 'Pause';
     tone(660, .1, 'square', .06);
     faceoff(Math.random() < .5);
-    last = performance.now();
+    last = null;
   }
   function updScore() { sYou.textContent = s.you; sCpu.textContent = s.cpu; }
 
@@ -176,6 +177,7 @@ canvas { display: block; width: 100%; height: 100%; border-radius: 16px; backgro
     ty = Math.max(yMin, Math.min(yMax, ty));
     let dx = tx - m.x, dy = ty - m.y;
     const d = Math.hypot(dx, dy), step = maxSpeed * dt;
+    if (!(dt > 0) || d === 0) { m.vx = m.vy = 0; return; } // FIX: a zero distance or negative dt used to produce NaN positions
     if (d > step) { dx *= step / d; dy *= step / d; }
     m.vx = dt ? dx / dt : 0; m.vy = dt ? dy / dt : 0;
     m.x += dx; m.y += dy;
@@ -206,6 +208,8 @@ canvas { display: block; width: 100%; height: 100%; border-radius: 16px; backgro
   function cpuTarget() {
     const L = LV[lv];
     const puckMine = pk.y < H / 2 + pk.r;
+    // FIX: if the CPU has been pinning a slow puck, back off so it can roll free, then attack again
+    if (retreatT > 0) return [W / 2, ai.R + (H * 0.13 - ai.R) * 0.5];
     if (puckMine && s.wait <= 0) {
       // get behind the puck (between it and our goal), then strike toward the player's goal
       const lead = 0.12 * L.aggro;
@@ -236,6 +240,22 @@ canvas { display: block; width: 100%; height: 100%; border-radius: 16px; backgro
     }
     const f = Math.pow(0.72, dt);
     pk.vx *= f; pk.vy *= f;
+
+    // FIX: unstick the puck from walls and corners
+    const speed = Math.hypot(pk.vx, pk.vy);
+    if (s.wait <= 0 && speed < H * 0.15) {
+      const m = pk.r * 1.4;
+      if (pk.x < m) pk.vx += H * 0.35;
+      if (pk.x > W - m) pk.vx -= H * 0.35;
+      if (pk.y < m) pk.vy += H * 0.35;
+      if (pk.y > H - m) pk.vy -= H * 0.35;
+    }
+    // stall detection on the CPU side
+    if (retreatT > 0) retreatT -= dt;
+    else if (s.wait <= 0 && pk.y < H / 2 && speed < H * 0.3) {
+      stallT += dt;
+      if (stallT > 0.8) { stallT = 0; retreatT = 0.6; }
+    } else stallT = 0;
   }
 
   function mallet(m, col) {
@@ -280,9 +300,12 @@ canvas { display: block; width: 100%; height: 100%; border-radius: 16px; backgro
     }
   }
 
-  let last = performance.now();
+  let last = null;
   function loop(t) {
-    const dt = Math.min(0.033, (t - last) / 1000); last = t;
+    // FIX: rAF timestamps can be earlier than performance.now(), so clamp dt to be non-negative
+    if (last === null) last = t;
+    const dt = Math.max(0, Math.min(0.033, (t - last) / 1000)); last = t;
+    if (![pk.x, pk.y, pk.vx, pk.vy, me.x, me.y, ai.x, ai.y].every(Number.isFinite)) { home(); faceoff(true); } // safety net
     if (s.running && !s.paused) step(dt);
     draw();
     requestAnimationFrame(loop);
@@ -309,7 +332,7 @@ canvas { display: block; width: 100%; height: 100%; border-radius: 16px; backgro
     if (!s.running) return;
     s.paused = !s.paused;
     pauseBtn.textContent = s.paused ? 'Resume' : 'Pause';
-    last = performance.now();
+    last = null;
   });
   document.getElementById('levels').addEventListener('click', e => {
     const bt = e.target.closest('button[data-lv]'); if (!bt) return;
