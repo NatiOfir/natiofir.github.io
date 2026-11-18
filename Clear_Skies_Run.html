@@ -24,8 +24,11 @@ h1 span{color:var(--vy)}
 .stage{position:relative;width:100%;max-width:min(100%,calc(78vh * 1.08));margin:0 auto;aspect-ratio:1.08;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--space)}
 canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 canvas:focus-visible,button:focus-visible{outline:2px solid var(--vy);outline-offset:2px}
-.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,17,41,.82);padding:20px}
-.ov{max-width:440px;display:flex;flex-direction:column;gap:12px}
+.overlay{position:absolute;inset:0;display:flex;background:rgba(11,17,41,.82);padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.ov{max-width:440px;display:flex;flex-direction:column;gap:12px;margin:auto}  /* margin:auto centres, but never clips when the text is taller than the map */
+@media (max-width:640px){.ov{gap:8px}.ov ul{font-size:14px}}
+/* phones in portrait: give the stage more height so the start screen fits even with large system text */
+@media (max-width:640px) and (orientation:portrait){.stage{aspect-ratio:auto;height:min(72vh,640px);height:min(72svh,640px)}}
 .ov h2{font-family:var(--display);font-size:clamp(24px,5vw,34px);margin:0;line-height:1.1;text-wrap:balance}
 .ov p{margin:0;color:var(--dim)}
 .ov ul{margin:0;padding-left:18px;color:var(--ink);display:grid;gap:4px}
@@ -59,6 +62,7 @@ canvas:focus-visible,button:focus-visible{outline:2px solid var(--vy);outline-of
     <div class="overlay" id="ov">
       <div class="ov" id="ovc">
         <h2>Mission: calibrate the ground network</h2>
+        <button class="btn" id="start">Start the day</button>
         <ul>
           <li>Tap, click or drag to send your agent somewhere. Arrow keys and WASD work too.</li>
           <li>Reach the flashing <b style="color:var(--vy)">stations</b> for 100 points each.</li>
@@ -66,7 +70,6 @@ canvas:focus-visible,button:focus-visible{outline:2px solid var(--vy);outline-of
           <li>When the beam passes you, it pings a TempoNet estimate with its error bar.</li>
           <li>Ozone builds through the afternoon, downwind of cities.</li>
         </ul>
-        <button class="btn" id="start">Start the day</button>
       </div>
     </div>
   </div>
@@ -219,10 +222,10 @@ function end(survived){
   const isBest=score>best;if(isBest){best=score;try{localStorage.setItem("csr-best",best)}catch(e){}}
   document.getElementById("ovc").innerHTML=`<div class="k">${survived?"Day complete · 18:00":"Overexposed at "+fmtT(hourOf(G.t))}</div>
    <div class="big">${score}</div>
+   <button class="btn" id="again">Play again</button>
    <h2>${survived?"You made it through the day":"Your agent breathed too much bad air"}</h2>
    <p>${G.stations} station${G.stations===1?"":"s"} calibrated × 100${survived?` + lung health bonus ${Math.round(G.hp)*2}`:""}. ${isBest?"New best score.":"Best: "+best}</p>
-   <p>Tip: ozone peaks mid-afternoon and drifts downwind of cities. NO₂ hugs the city centers.</p>
-   <button class="btn" id="again">Play again</button>`;
+   <p>Tip: ozone peaks mid-afternoon and drifts downwind of cities. NO₂ hugs the city centers.</p>`;
   document.getElementById("ov").hidden=false;document.getElementById("again").addEventListener("click",start);document.getElementById("again").focus();
 }
 
