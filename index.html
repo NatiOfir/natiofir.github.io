@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Nati Ofir - Computer Vision and Remote Sensing Researcher">
+    <meta name="description" content="Nati Ofir — researcher at the Weizmann Institute working on deep learning for satellite air-quality monitoring (TEMPO, GEMS), computer vision and remote sensing.">
+    <meta property="og:title" content="Nati Ofir — Computer Vision &amp; Remote Sensing">
+    <meta property="og:description" content="Deep learning for satellite-based air-quality estimation, computer vision and remote sensing.">
+    <meta property="og:image" content="https://natiofir.github.io/16161F28.jpeg">
     <meta name="author" content="Nati Ofir">
-    <title>Nati Ofir - Algorithm Researcher</title>
+    <title>Nati Ofir — Computer Vision & Remote Sensing Researcher</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
@@ -14,12 +17,13 @@
         <div class="max-w-6xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
                 <a href="#" class="text-xl font-semibold">Nati Ofir</a>
-                <div class="hidden md:flex space-x-8">
+                <div class="flex space-x-4 md:space-x-8 overflow-x-auto text-sm md:text-base">
                     <a href="#" class="hover:text-blue-400">Home</a>
                     <a href="#bio" class="hover:text-blue-400">Bio</a>
                     <a href="#research" class="hover:text-blue-400">Research</a>
                     <a href="#publications" class="hover:text-blue-400">Publications</a>
                     <a href="#teaching" class="hover:text-blue-400">Teaching</a>
+                    <a href="#research-games" class="hover:text-blue-400">Games</a>
                 </div>
             </div>
         </div>
@@ -34,7 +38,7 @@
                 <img src="old/4.png" alt="Profile 2" class="rounded-lg shadow-lg">
                 <img src="old/3.png" alt="Profile 3" class="rounded-lg shadow-lg">
                 <img src="old/6.png" alt="Profile 4" class="rounded-lg shadow-lg"-->
-                <img src="16161F28.jpeg" alt="Profile 5" class="rounded-lg shadow-lg">
+                <img src="16161F28.jpeg" alt="Nati Ofir" class="rounded-lg shadow-lg">
         </div>
 
         </section>
@@ -44,7 +48,7 @@
             <h2 class="text-3xl font-bold mb-6 text-gray-800">Bio</h2>
             <div class="prose max-w-none">
                 <p class="text-gray-600 leading-relaxed mb-6">
-                    I am an algorithmics PhD researcher at the Weizmann Institute of Science, working on computer vision, remote sensing, and environmental AI. My research focuses on developing deep learning methods for satellite-based atmospheric monitoring, multimodal data fusion, and image understanding. I previously worked on fundamental problems in computer vision, including faint edge detection, multispectral registration, and image fusion, publishing in venues such as TPAMI, CVPR, ICIP, ICPR, and ICASSP.
+                    I am a researcher at the Weizmann Institute of Science, working on computer vision, remote sensing, and environmental AI, and a lecturer in Computer Science at the Open University of Israel. My research focuses on developing deep learning methods for satellite-based atmospheric monitoring, multimodal data fusion, and image understanding. I previously worked on fundamental problems in computer vision, including faint edge detection, multispectral registration, and image fusion, publishing in venues such as TPAMI, CVPR, ICIP, ICPR, and ICASSP.
                     </p>
                 <p class="text-gray-600 leading-relaxed mb-6">
                     I am currently working in <a href="https://www.weizmann.ac.il/EPS/Rudich/home" class="text-blue-600 hover:text-blue-800">Rudich's Lab</a> at the Weizmann Institute, specializing in remote sensing. I earned my <a href="https://kunet.kingston.ac.uk/~ku33185/ComputerVision.html" class="text-blue-600 hover:text-blue-800">Ph.D.</a> in Computer Science from <a href="https://www.kingston.ac.uk/" class="text-blue-600 hover:text-blue-800">Kingston University London</a> (2021) under Professor <a href="https://kunet.kingston.ac.uk/~ku33185/" class="text-blue-600 hover:text-blue-800">Jean-Christophe Nebel</a>'s supervision.
@@ -59,7 +63,7 @@
               Email: nati (dot) ofir (at) weizmann (dot) ac (dot) il
                 </p>
                 <p class="text-gray-600 mt-2">
-              Publications: 13 | Citations: 170 | h-index: 7
+              Up-to-date citation metrics on <a href="https://scholar.google.co.il/citations?user=Auz08a8AAAAJ&hl=en" class="text-blue-600 hover:text-blue-800">Google Scholar</a>
             </p>
             </div>
             
@@ -80,45 +84,26 @@
         </section>
 <section id="current" class="mb-16">
   <h2 class="text-3xl font-bold mb-6 text-gray-800">Current Research</h2>
-    <div class="mt-4">
-  <h3 class="text-xl font-semibold text-blue-600">
-    PollutionNet (Satellite Air Quality Estimation)
-  </h3>
-  <p class="text-gray-600">
-    Deep learning framework for estimating ground-level air pollutants from GEMS satellite imagery and ERA5 meteorology.
-  </p>
-</div>
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <p class="text-gray-600 mb-4">
-      My current research focuses on satellite-based air quality estimation using deep learning and multimodal data fusion.
-    </p>
-    <ul class="list-disc ml-5 text-gray-600">
-      <li>GEMS satellite + ERA5 for atmospheric modeling</li>
-      <li>Multimodal deep learning for environmental AI</li>
-      <li>Surface pollutant estimation from satellite observations</li>
-    </ul>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-semibold text-blue-600 mb-2">TempoNet (TEMPO, North America)</h3>
+      <p class="text-gray-600">Multimodal deep learning that estimates surface O₃ and NO₂ from NASA's geostationary TEMPO satellite, fused with ERA5 meteorology, MODIS land cover and station metadata. Trained on 278 U.S. stations and validated zero-shot on 136 Canadian stations.</p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-semibold text-blue-600 mb-2">PollutionNet (GEMS, East Asia)</h3>
+      <p class="text-gray-600">Deep learning estimation of six surface air pollutants from the Korean GEMS geostationary satellite. Published in <a href="https://ieeexplore.ieee.org/document/11673160" class="text-blue-600 hover:text-blue-800">IEEE JSTARS (2026)</a>.</p>
+    </div>
   </div>
-    
 </section>
         <!-- Research Interests -->
         <section id="research" class="mb-16">
             <h2 class="text-3xl font-bold mb-6 text-gray-800">Research Interests</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="font-semibold mb-2">Computer Vision</h3>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="font-semibold mb-2">Deep Learning</h3>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="font-semibold mb-2">Image Processing</h3>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="font-semibold mb-2">Machine Learning</h3>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="font-semibold mb-2">Remote Sensing</h3>
-                </div>
+            <div class="flex flex-wrap gap-3">
+                <span class="bg-white px-4 py-2 rounded-full shadow">Computer Vision</span>
+                <span class="bg-white px-4 py-2 rounded-full shadow">Deep Learning</span>
+                <span class="bg-white px-4 py-2 rounded-full shadow">Image Processing</span>
+                <span class="bg-white px-4 py-2 rounded-full shadow">Machine Learning</span>
+                <span class="bg-white px-4 py-2 rounded-full shadow">Remote Sensing</span>
             </div>
         </section>
 
@@ -341,7 +326,7 @@
                     <li class="text-gray-600">Introduction to Image Processing, The College for Academic Studies, Summer 2013</li>
                     <li class="text-gray-600">Introduction to Computer Vision (TA), Weizmann Institute, Fall 2015</li>
                     <li class="text-gray-600">Computer Science Instructor, Davidson Institute, 2024-2026</li>
-                    <li class="text-gray-600">Computer Science Instructor, The Open University, 2024-Present</li>
+                    <li class="text-gray-600">Lecturer, Computer Science, The Open University of Israel, 2024–Present</li>
                 </ul>
             </div>
         </section>
@@ -391,7 +376,7 @@
             </div>
         </section-->
     </div>
-
+      <footer class="text-center text-gray-500 text-sm py-8">© 2026 Nati Ofir · Last updated November 2026</footer>
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-52158441-1"></script>
     <script>
